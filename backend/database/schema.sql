@@ -5,11 +5,24 @@ CREATE TYPE throw_result AS ENUM (
     'fault'        -- (0p, yliastuttu/hylätty heitto)
 );
 
+CREATE TABLE game_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    max_players INTEGER NOT NULL CHECK (max_players > 0),
+    UNIQUE (name)
+    UNIQUE (max_players)
+);
+
 -- Basic structures
 CREATE TABLE players (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    email VARCHAR(100) NOT NULL,
+    UNIQUE (email)
+    CONSTRAINT valid_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+
 );
 
 -- sarja OKL-A-2024, HKL-2025, PKL-2026 jne
@@ -18,10 +31,11 @@ CREATE TABLE series (
     name VARCHAR(100) NOT NULL,
     season_type VARCHAR(10) NOT NULL CHECK (season_type IN ('summer', 'winter')), -- kesä vs talvi pistelasku
     year INTEGER NOT NULL, -- mutta voi olla välikausi 14-15 :thinking:
-    game_type VARCHAR(20) NOT NULL CHECK (game_type IN ('single', 'duo', 'quartet')),
     status VARCHAR(20) DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'ongoing', 'completed')), -- onko ilmo vielä auki tms?
     registration_open BOOLEAN DEFAULT true, -- datetimefield?
+    game_type_id INTEGER REFERENCES game_types(id) NOT NULL, -- Viittaus pelityyppiin
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    UNIQUE (name, year)
 );
 
 -- Teams that register in series // Joukkueet
@@ -37,13 +51,10 @@ CREATE TABLE teams_in_series (
     UNIQUE(series_id, team_abbreviation) -- Joukkueen lyhenne on uniikki sarjassa
 );
 
-CREATE TABLE roster_players (
+CREATE TABLE  roster_players_in_series (
     registration_id INTEGER REFERENCES teams_in_series(id),
     player_id INTEGER REFERENCES players(id),
-    is_reserve BOOLEAN DEFAULT false,
-    joined_date DATE NOT NULL,
-    left_date DATE,
-    PRIMARY KEY (registration_id, player_id, joined_date)
+    UNIQUE(registration_id, player_id,)
 );
 
 CREATE TABLE team_history (
@@ -147,78 +158,40 @@ CREATE TABLE player_throws (
                 (team_number = 1 AND player_position > 2)
         END
     ),
-    -- Tarkista pisteiden validius
-    CONSTRAINT valid_points CHECK (
-        CASE 
-            WHEN throw_type IS NOT NULL THEN 
-                points = 0  -- H, -, U aina 0 pistettä
-            WHEN points < 0 THEN 
-                points = -1 -- Vain yksi kyykkä voi palata kentälle (pappi)
-            ELSE 
-                points >= 0 -- Positiiviset pisteet sallittuja (kyykät ulos)
-        END
-    )
 );
 */
 -- Yksinkertaiset tarkistukset tietokannassa
-ALTER TABLE roster_players ADD CONSTRAINT valid_player_count
-    CHECK (
-        (SELECT COUNT(*) FROM roster_players WHERE registration_id = NEW.registration_id) <= 4
-    );
-
--- Player count validation
-CREATE OR REPLACE FUNCTION validate_game_players()
+CREATE OR REPLACE FUNCTION validate_team_player_count()
 RETURNS TRIGGER AS $$
 DECLARE
-    v_game_type VARCHAR(20);
+    v_max_players INTEGER;
     v_active_players INTEGER;
 BEGIN
-    SELECT s.game_type INTO v_game_type
-    FROM series s
-    JOIN teams_in_series sr ON s.id = sr.series_id
-    WHERE sr.id = NEW.registration_id;
+    -- Hae pelityypin maksimipelaajamäärä
+    SELECT gt.max_players INTO v_max_players
+    FROM game_types gt
+    JOIN series s ON gt.id = s.game_type_id
+    JOIN teams_in_series t ON s.id = t.series_id
+    WHERE t.id = NEW.registration_id;
 
+    -- Lasketaan aktiivisten pelaajien määrä joukkueessa
     SELECT COUNT(*) INTO v_active_players
-    FROM roster_players
+    FROM roster_players_in_series
     WHERE registration_id = NEW.registration_id
-    AND is_reserve = false
     AND (left_date IS NULL OR left_date > CURRENT_DATE);
 
-    IF NEW.is_reserve = false THEN
-        CASE v_game_type
-            WHEN 'single' THEN
-                IF v_active_players >= 1 THEN
-                    RAISE EXCEPTION 'Only one player allowed in single series';
-                END IF;
-            WHEN 'duo' THEN
-                IF v_active_players >= 2 THEN
-                    RAISE EXCEPTION 'Only two players allowed in duo series';
-                END IF;
-            WHEN 'quartet' THEN
-                IF v_active_players >= 4 THEN
-                    RAISE EXCEPTION 'Only four main players allowed in quartet series';
-                END IF;
-        END CASE;
-    ELSIF v_game_type = 'quartet' AND NEW.is_reserve = true THEN
-        SELECT COUNT(*) INTO v_active_players
-        FROM roster_players
-        WHERE registration_id = NEW.registration_id
-        AND is_reserve = true
-        AND (left_date IS NULL OR left_date > CURRENT_DATE);
-        
-        IF v_active_players >= 4 THEN
-            RAISE EXCEPTION 'Maximum of four reserve players allowed in quartet series';
-        END IF;
-    ELSIF NEW.is_reserve = true AND v_game_type IN ('single', 'duo') THEN
-        RAISE EXCEPTION 'Reserve players only allowed in quartet series';
+    -- Tarkista, ettei aktiivisten pelaajien määrä ylitä rajaa
+    IF v_active_players >= v_max_players THEN
+        RAISE EXCEPTION 'Player limit exceeded: Only % players allowed for this game type',
+            v_max_players;
     END IF;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER validate_game_players_trigger
-BEFORE INSERT OR UPDATE ON roster_players
+-- Triggerin luominen
+CREATE TRIGGER validate_team_player_count_trigger
+BEFORE INSERT OR UPDATE ON roster_players_in_series
 FOR EACH ROW
-EXECUTE FUNCTION validate_game_players();
-
+EXECUTE FUNCTION validate_team_player_count();
