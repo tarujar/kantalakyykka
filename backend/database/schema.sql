@@ -5,12 +5,13 @@ CREATE TYPE throw_result AS ENUM (
     'fault'        -- (0p, yliastuttu/hylätty heitto)
 );
 
+-- single(1), duo(2), quartet(4), team(4-8 players)
 CREATE TABLE game_types (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     max_players INTEGER NOT NULL CHECK (max_players > 0),
-    UNIQUE (name)
+    UNIQUE (name),
     UNIQUE (max_players)
 );
 
@@ -20,21 +21,20 @@ CREATE TABLE players (
     name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     email VARCHAR(100) NOT NULL,
-    UNIQUE (email)
+    UNIQUE (email),
     CONSTRAINT valid_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
-
 );
 
 -- sarja OKL-A-2024, HKL-2025, PKL-2026 jne
 CREATE TABLE series (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    season_type VARCHAR(10) NOT NULL CHECK (season_type IN ('summer', 'winter')), -- kesä vs talvi pistelasku
+    season_type VARCHAR(10) NOT NULL DEFAULT 'winter' CHECK (season_type IN ('summer', 'winter')), -- kesä vs talvi pistelasku
     year INTEGER NOT NULL, -- mutta voi olla välikausi 14-15 :thinking:
     status VARCHAR(20) DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'ongoing', 'completed')), -- onko ilmo vielä auki tms?
     registration_open BOOLEAN DEFAULT true, -- datetimefield?
     game_type_id INTEGER REFERENCES game_types(id) NOT NULL, -- Viittaus pelityyppiin
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (name, year)
 );
 
@@ -45,16 +45,15 @@ CREATE TABLE teams_in_series (
     team_name VARCHAR(100) NOT NULL,
     team_abbreviation VARCHAR(10) NOT NULL,
     contact_player_id INTEGER REFERENCES players(id),
-    -- is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(series_id, team_name)         -- Joukkueen nimi on uniikki sarjassa
+    UNIQUE(series_id, team_name),         -- Joukkueen nimi on uniikki sarjassa
     UNIQUE(series_id, team_abbreviation) -- Joukkueen lyhenne on uniikki sarjassa
 );
 
-CREATE TABLE  roster_players_in_series (
+CREATE TABLE roster_players_in_series (
     registration_id INTEGER REFERENCES teams_in_series(id),
     player_id INTEGER REFERENCES players(id),
-    UNIQUE(registration_id, player_id,)
+    UNIQUE(registration_id, player_id)
 );
 
 CREATE TABLE team_history (
@@ -67,11 +66,6 @@ CREATE TABLE team_history (
     UNIQUE(previous_registration_id, next_registration_id)
 );
 
-CREATE TYPE throw_result AS ENUM (
-    'valid',       -- 2p per kyykkä (kyykät poistuvat neliöstä), 1p per kyykkä (kyykät jäävät laidalle aka pappi), 0 (osuma, mutta kyykät eivät siirry)
-    'hauki',       -- H (0p, ei osumaa kyykään, hauki)
-    'fault'        -- (0p, yliastuttu/hylätty heitto)
-);
 -- Games and scoring  // Pelitulokset
 CREATE TABLE games (
     id SERIAL PRIMARY KEY,
@@ -82,13 +76,27 @@ CREATE TABLE games (
     game_date DATE NOT NULL,
     team_1_id INTEGER REFERENCES teams_in_series(id), -- kotijoukkue
     team_2_id INTEGER REFERENCES teams_in_series(id),
-    -- scores INTEGER REFERENCES game_sets(id),
     score_1_1 INTEGER NOT NULL, -- joukkue 1 erä 1 
     score_1_2 INTEGER NOT NULL, -- joukkue 1 erä 2
     score_2_1 INTEGER NOT NULL, -- joukkue 2 erä 1
     score_2_2 INTEGER NOT NULL, -- joukkue 2 erä 2
-    CONSTRAINT different_teams CHECK (team1_id != team2_id)
+    CONSTRAINT different_teams CHECK (team_1_id != team_2_id),
     UNIQUE (series_id, game_date, team_1_id, team_2_id, round)
+);
+
+-- Joukkueiden heittotulokset
+CREATE TABLE single_throw (
+    id SERIAL PRIMARY KEY,
+    throw_type throw_result,
+    throw_score INTEGER NOT NULL,
+    CONSTRAINT valid_throw_score CHECK (
+        CASE 
+            WHEN throw_type = 'valid' THEN
+                throw_score BETWEEN -80 AND 80
+            ELSE 
+                throw_score = 0 -- Hauki, hylätty aina 0p
+        END
+    )
 );
 
 -- jokaisessa erässä on 4 tai 5 heittokierrosta
@@ -104,62 +112,15 @@ CREATE TABLE single_round_throws (
     throw_1 INTEGER REFERENCES single_throw(id),
     throw_2 INTEGER REFERENCES single_throw(id),
     throw_3 INTEGER REFERENCES single_throw(id),
-    throw_4 INTEGER REFERENCES single_throw(id)
-    CONSTRAINT valid_throw_position CHECK (throw_position BETWEEN 1 AND 5)
-    CONSTRAINT valid_game_set_index CHECK (game_set_index BETWEEN 1 AND 2)
-    UNIQUE (game_id, game_set_index, throw_position)
+    throw_4 INTEGER REFERENCES single_throw(id),
+    CONSTRAINT valid_throw_position CHECK (throw_position BETWEEN 1 AND 5),
+    CONSTRAINT valid_game_set_index CHECK (game_set_index BETWEEN 1 AND 2),
+    UNIQUE (game_id, game_set_index, throw_position),
     UNIQUE (game_id, game_set_index)
 );
 
--- Joukkueiden heittotulokset
-CREATE TABLE single_throw (
-    id SERIAL PRIMARY KEY,
-    throw_type throw_result DEFAULT,
-    throw_score INTEGER NOT NULL,
-    CONSTRAINT valid_throw_score CHECK (
-        CASE 
-            WHEN throw_type IN ('valid') THEN
-                throw_score BETWEEN -80 AND 80
-            ELSE 
-                throw_score = 0 -- Hauki, hylätty aina 0p
-        END
-    )
-);
 
 
-/*
-CREATE TABLE player_throws (
-    id SERIAL PRIMARY KEY,
-    game_set_id INTEGER REFERENCES game_sets(id),
-    player_id INTEGER REFERENCES players(id),
-    team_number INTEGER CHECK (team_number IN (1, 2)),
-    player_position INTEGER NOT NULL,
-    throw_number INTEGER NOT NULL,
-    points INTEGER DEFAULT 0,
-    throw_type VARCHAR(1) CHECK (
-        throw_type IS NULL OR
-        throw_type IN ('H', '-', 'U')
-    ),
-    UNIQUE (game_set_id, player_position, throw_number),
-    -- Tarkista heittojärjestys erän mukaan
-    CONSTRAINT valid_throw_order CHECK (
-        CASE 
-            WHEN (SELECT set_number FROM game_sets WHERE id = game_set_id) = 1 THEN
-                -- 1. erä: joukkue 1 aloittaa
-                (team_number = 1 AND player_position <= 2) OR
-                (team_number = 2 AND player_position <= 2) OR
-                (team_number = 1 AND player_position > 2) OR
-                (team_number = 2 AND player_position > 2)
-            ELSE
-                -- 2. erä: joukkue 2 aloittaa
-                (team_number = 2 AND player_position <= 2) OR
-                (team_number = 1 AND player_position <= 2) OR
-                (team_number = 2 AND player_position > 2) OR
-                (team_number = 1 AND player_position > 2)
-        END
-    ),
-);
-*/
 -- Yksinkertaiset tarkistukset tietokannassa
 CREATE OR REPLACE FUNCTION validate_team_player_count()
 RETURNS TRIGGER AS $$
@@ -177,8 +138,7 @@ BEGIN
     -- Lasketaan aktiivisten pelaajien määrä joukkueessa
     SELECT COUNT(*) INTO v_active_players
     FROM roster_players_in_series
-    WHERE registration_id = NEW.registration_id
-    AND (left_date IS NULL OR left_date > CURRENT_DATE);
+    WHERE registration_id = NEW.registration_id;
 
     -- Tarkista, ettei aktiivisten pelaajien määrä ylitä rajaa
     IF v_active_players >= v_max_players THEN
