@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+alembic
+psycopg2
+email-validator
+psycopg2-binary
+# Add other dependencies as needed

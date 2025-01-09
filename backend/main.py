@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.v1 import games, players
+from app.api import games, players
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Kyykka API")
