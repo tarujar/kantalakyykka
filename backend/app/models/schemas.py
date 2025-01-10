@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from enum import Enum
 from typing import List, Optional
 
@@ -17,8 +17,7 @@ class GameType(BaseModel):
     max_players: int
     created_at: Optional[str]
 
-    class Config:
-        orm_mode: True
+    model_config = ConfigDict(from_attributes=True)
 
 class PlayerCreate(BaseModel):
     name: str
@@ -30,8 +29,7 @@ class Player(BaseModel):
     email: EmailStr
     created_at: Optional[str]
 
-    class Config:
-        orm_mode: True
+    model_config = ConfigDict(from_attributes=True)
 
 class SeriesCreate(BaseModel):
     name: str
@@ -51,8 +49,7 @@ class Series(BaseModel):
     game_type_id: int
     created_at: Optional[str]
 
-    class Config:
-        orm_mode: True
+    model_config = ConfigDict(from_attributes=True)
 
 class TeamInSeries(BaseModel):
     series_id: int
@@ -86,8 +83,7 @@ class Game(BaseModel):
     score_2_2: int
     created_at: Optional[str]
 
-    class Config:
-        orm_mode: True
+    model_config = ConfigDict(from_attributes=True)
 
 class GameResult(BaseModel):
     game_id: int

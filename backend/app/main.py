@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
-from .api import api_router
+from app.api.router import api_router  # Ensure this import is correct
 
 app = FastAPI()
 
 # Include the API router
-app.include_router(api_router)
+app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():

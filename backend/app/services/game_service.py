@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from typing import List, Dict
+from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from ..models import GameType, Player

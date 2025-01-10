@@ -1,2 +1,3 @@
 from database.database import engine, SessionLocal, Base, get_db
+from main import app
 # ...other package-level imports if needed...

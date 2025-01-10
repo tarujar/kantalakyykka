@@ -6,4 +6,10 @@ alembic
 psycopg2
 email-validator
 psycopg2-binary
+pytest
 # Add other dependencies as needed
+python-dotenv
+httpx
+aiosqlite
+pytest-asyncio
+greenlet

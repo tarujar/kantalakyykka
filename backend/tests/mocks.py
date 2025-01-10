@@ -7,12 +7,17 @@ mock_game_types = [
     {"id": 4, "name": "Joukkue", "max_players": 8}
 ]
 
+mock_game_type_single = {"id": 1, "name": "Henkkari", "max_players": 1}
+
 mock_players = [
     {"id": 1, "name": "Matti Meikalainen", "email": "matti@example.com"},
     {"id": 2, "name": "Teppo Testaaja", "email": "teppo@example.com"},
     {"id": 3, "name": "Liisa Pelaaja", "email": "liisa@example.com"},
     {"id": 4, "name": "Anna Heittaja", "email": "anna@example.com"}
 ]
+
+mock_player_1 = {"id": 1, "name": "Matti Meikalainen", "email": "matti@example.com"}
+mock_player_2 = {"id": 2, "name": "Teppo Testaaja", "email": "teppo@example.com"}
 
 mock_games = [
     {
