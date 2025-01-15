@@ -1,0 +1,72 @@
+.game-form {
+  padding: 1rem;
+}
+
+.game-set {
+  margin-bottom: 2rem;
+}
+
+.game-set h3 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.player-info {
+  width: 200px;
+}
+
+.player-name {
+  font-weight: bold;
+  margin-right: 1rem;
+}
+
+.team-number {
+  color: #666;
+}
+
+.throws {
+  display: flex;
+  gap: 1rem;
+}
+
+.throw-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.throw-input label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.throw-input input {
+  width: 3em;
+  padding: 0.5rem;
+  text-align: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.submit-button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submit-button:hover {
+  background: #0056b3;
+} 

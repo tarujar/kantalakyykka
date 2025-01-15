@@ -1,3 +1,11 @@
+# Scripts
+
+## Create types for frontend
+
+`npx openapi-typescript-codegen --input http://localhost:8000/openapi.json --output ./frontend/src/types/`
+
+Or if types are mismatching in data. Do fix the types defined in backend code and run the script after that.
+
 ## Kyykän pelisanasto
 
 ### Perustermit
