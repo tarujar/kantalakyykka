@@ -3,7 +3,7 @@ import pytest_asyncio
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services import game_service 
-from .mocks import mock_game_type_single, mock_player_1, mock_player_2
+from tests.utils.mocks import mock_game_type_single, mock_player_1, mock_player_2
 
 @pytest_asyncio.fixture
 async def db_session(async_session: AsyncSession):

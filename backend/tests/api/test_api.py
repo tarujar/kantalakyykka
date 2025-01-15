@@ -1,12 +1,12 @@
 import pytest
 import respx
 from httpx import Response
-from .mock_responses import (
+from tests.utils.mock_responses import (
     game_types_response, game_type_response, error_responses,
     new_game_type_response, updated_game_type_response,
     new_player_response, new_series_response, new_game_response
 )
-from .mocks import (
+from tests.utils.mocks import (
     mock_new_game_type, mock_invalid_game_type, mock_updated_game_type,
     mock_new_player, mock_invalid_player,
     mock_new_series, mock_invalid_series,
