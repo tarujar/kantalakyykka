@@ -2,16 +2,18 @@ from fastapi import HTTPException
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from ..models import GameType, Player
+from sqlalchemy.orm import Session
+from ..models import GameCreate, Game, Player
+from database.models import Game as GameModel, GameType as GameTypeModel
 
-async def get_max_players_for_game_type(session: AsyncSession, game_type: GameType) -> int:
-    result = await session.execute(select(GameType).filter_by(name=game_type.value))
+async def get_max_players_for_game_type(session: AsyncSession, game_type: GameTypeModel) -> int:
+    result = await session.execute(select(GameTypeModel).filter_by(name=game_type.value))
     game_type_record = result.scalar_one_or_none()
     if game_type_record is None:
         raise HTTPException(status_code=404, detail="Game type not found")
     return game_type_record.max_players
 
-async def validate_game_players(session: AsyncSession, game_type: GameType, players: List[Player]) -> None:
+async def validate_game_players(session: AsyncSession, game_type: GameTypeModel, players: List[Player]) -> None:
     max_players = await get_max_players_for_game_type(session, game_type)
     if len(players) > max_players:
         raise HTTPException(
@@ -46,3 +48,39 @@ def calculate_throw_points(throw_input: str) -> tuple[int, str | None]:
                 raise ValueError("Points must be between -8 and 80")
             except ValueError:
                 raise ValueError(f"Invalid throw input: {throw_input}")
+
+async def create_game(db: AsyncSession, game: GameCreate) -> Game:
+    await validate_game_players(db, game.game_type_id, game.players)
+    db_game = GameModel(
+        game_type_id=game.game_type_id,
+        players=game.players,
+        points_multiplier=game.points_multiplier,
+        # Add other necessary fields
+    )
+    db.add(db_game)
+    await db.commit()
+    await db.refresh(db_game)
+    return db_game
+
+async def get_game(db: AsyncSession, game_id: int) -> Game:
+    result = await db.execute(select(GameModel).filter(GameModel.id == game_id))
+    db_game = result.scalars().first()
+    if not db_game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    return db_game
+
+async def list_games(db: AsyncSession) -> list[GameModel]:
+    result = await db.execute(select(GameModel))
+    return result.scalars().all()
+
+async def validate_game_players(db: AsyncSession, game_type_id: int, players: list[int]):
+    result = await db.execute(select(GameTypeModel).filter(GameTypeModel.id == game_type_id))
+    game_type = result.scalars().first()
+    if not game_type:
+        raise HTTPException(status_code=400, detail="Invalid game type")
+    
+    max_players = game_type.max_players
+    if len(players) > max_players:
+        raise HTTPException(status_code=400, detail="Too many players for this game type")
+    if len(players) < max_players:
+        raise HTTPException(status_code=400, detail="Not enough players for this game type")

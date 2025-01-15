@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from database.database import get_db
-from ...models.schemas import SeriesCreate, Series, TeamInSeries, RosterPlayer
+from ...models.schemas import SeriesCreate, Series, TeamInSeriesCreate, TeamInSeries
 from ...services import series_service
 
 router = APIRouter()
@@ -36,12 +36,17 @@ async def add_team_to_series(
     db_team = series_service.add_team_to_series(db=db, series_id=series_id, team=team)
     return db_team
 
-@router.post("/{series_id}/teams/{team_id}/players", response_model=RosterPlayer)
+@router.post("/{series_id}/teams/{team_id}/players")
 async def add_player_to_team(
     series_id: int,
     team_id: int,
-    player: RosterPlayer,
+    player_id: int,
     db: Session = Depends(get_db)
 ):
-    db_player = series_service.add_player_to_team(db=db, series_id=series_id, team_id=team_id, player=player)
-    return db_player
+    db_player = series_service.add_player_to_team(
+        db=db, 
+        series_id=series_id, 
+        team_id=team_id, 
+        player_id=player_id
+    )
+    return {"status": "success", "player_id": player_id}

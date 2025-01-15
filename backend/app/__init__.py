@@ -1,3 +1,3 @@
-from database.database import engine, SessionLocal, Base, get_db
+from database.database import engine, Base, get_db, init_db
 from main import app
 # ...other package-level imports if needed...

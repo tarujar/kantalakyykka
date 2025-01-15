@@ -13,3 +13,5 @@ httpx
 aiosqlite
 pytest-asyncio
 greenlet
+asyncpg
+pytest-mock

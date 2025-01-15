@@ -1,8 +1,19 @@
-from app.models.schemas import GameType, SeriesCreate, TeamInSeries, RosterPlayer
-
+from datetime import datetime, timezone
+from database.models import GameType, Player, Game, Series, TeamInSeries
+from app.models import GameTypeCreate, SeriesCreate, TeamInSeries
 mock_game_types = [
-    {"id": 1, "name": "Henkkari", "max_players": 1},
-    {"id": 2, "name": "Pari", "max_players": 2},
+    {
+        "id": 1,
+        "name": "Henkkari",
+        "max_players": 1,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    },
+    {
+        "id": 2,
+        "name": "Pari",
+        "max_players": 2,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    },
     {"id": 3, "name": "WCOK", "max_players": 4},
     {"id": 4, "name": "Joukkue", "max_players": 8}
 ]
@@ -59,12 +70,5 @@ mock_teams_in_series = [
         team_name="Team A",
         team_abbreviation="TA",
         contact_player_id=1
-    )
-]
-
-mock_roster_players = [
-    RosterPlayer(
-        registration_id=1,
-        player_id=1
     )
 ]
