@@ -22,6 +22,8 @@ async def validate_game_players(session: AsyncSession, game_type: GameTypeModel,
         )
 
 async def calculate_game_score(team_score: int, points_multiplier: int) -> int:
+    if points_multiplier not in [1, 2]:
+        raise ValueError("Invalid season")
     return team_score * points_multiplier 
 
 def calculate_throw_points(throw_input: str) -> tuple[int, str | None]:

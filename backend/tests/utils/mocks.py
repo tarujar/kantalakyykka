@@ -122,3 +122,48 @@ mock_invalid_game = {
     "score_2_1": 15,
     "score_2_2": 10
 }
+
+mock_game_data = {
+    "round": "1",
+    "is_playoff": False,
+    "series_id": 1,
+    "game_date": "2024-01-01",
+    "team_1_id": 1,
+    "team_2_id": 2,
+    "score_1_1": 10,
+    "score_1_2": 5,
+    "score_2_1": 15,
+    "score_2_2": 10
+}
+
+mock_invalid_game_data = {
+    "round": "1",
+    "is_playoff": False,
+    "series_id": 1,
+    "game_date": "2024-01-01",
+    "team_1_id": 1,
+    "team_2_id": 1,  # Invalid: same team
+    "score_1_1": 10,
+    "score_1_2": 5,
+    "score_2_1": 15,
+    "score_2_2": 10
+}
+
+mock_game_response = {
+    "id": 1,
+    "round": "1",
+    "is_playoff": False,
+    "series_id": 1,
+    "game_date": "2024-01-01",
+    "team_1_id": 1,
+    "team_2_id": 2,
+    "score_1_1": 10,
+    "score_1_2": 5,
+    "score_2_1": 15,
+    "score_2_2": 10
+}
+
+mock_games_list_response = [
+    {"id": 1, "round": "1", "is_playoff": False, "series_id": 1, "game_date": "2024-01-01", "team_1_id": 1, "team_2_id": 2, "score_1_1": 10, "score_1_2": 5, "score_2_1": 15, "score_2_2": 10},
+    {"id": 2, "round": "2", "is_playoff": False, "series_id": 1, "game_date": "2024-01-02", "team_1_id": 3, "team_2_id": 4, "score_1_1": 20, "score_1_2": 10, "score_2_1": 25, "score_2_2": 20}
+]

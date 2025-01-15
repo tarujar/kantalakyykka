@@ -13,31 +13,27 @@ class GameTypeCreate(BaseModel):
     max_players: int
 
 class GameType(BaseModel):
-    id: int
+    id: Optional[int]
     name: str
     max_players: int
-    created_at: Optional[str]
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
-class PlayerCreate(BaseModel):
-    name: str
-    email: str
-
-    @field_validator('email')
-    def validate_email(cls, v):
-        import re
-        if not re.match(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$', v):
-            raise ValueError("Invalid email format")
-        return v
-
-class Player(BaseModel):
-    id: int
+class PlayerBase(BaseModel):
     name: str
     email: EmailStr
-    created_at: Optional[str]
 
-    model_config = ConfigDict(from_attributes=True)
+class PlayerCreate(PlayerBase):
+    pass
+
+class Player(BaseModel):
+    id: Optional[int]
+    name: str
+    position: int
+
+    class Config:
+        orm_mode = True
 
 class SeriesCreate(BaseModel):
     name: str
@@ -53,16 +49,12 @@ class SeriesCreate(BaseModel):
         return self
 
 class Series(BaseModel):
-    id: int
+    id: Optional[int]
     name: str
-    season_type: Literal['summer', 'winter']
-    year: int
-    status: Optional[Literal['upcoming', 'ongoing', 'completed']]
-    registration_open: Optional[bool]
-    game_type_id: int
-    created_at: Optional[str]
+    max_players: int
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 
 class TeamInSeriesCreate(BaseModel):
     series_id: int
@@ -74,6 +66,13 @@ class TeamInSeriesCreate(BaseModel):
     def validate_unique_in_series(self):
         # Note: Actual DB-level uniqueness check needed in service layer
         return self
+
+class Team(BaseModel):
+    id: Optional[int]
+    name: str
+
+    class Config:
+        orm_mode = True
 
 class TeamInSeries(TeamInSeriesCreate):
     id: Optional[int] = None
@@ -150,8 +149,11 @@ class GameCreate(BaseModel):
             raise ValueError("team_1_id and team_2_id must be different")
         return self
 
-class Game(GameCreate):
-    id: int
-    created_at: datetime
+class Game(BaseModel):
+    id: Optional[int]
+    type_id: int
+    series_id: int
+    starting_team_id: int
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
