@@ -7,7 +7,7 @@ export function useTranslation() {
     
     for (const k of keys) {
       value = value[k];
-      if (!value) return key;
+      if (value === undefined) return key; // Fallback to key if translation is missing
     }
 
     if (params) {
@@ -21,4 +21,4 @@ export function useTranslation() {
   };
 
   return { t };
-} 
+}

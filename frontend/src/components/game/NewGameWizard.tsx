@@ -69,10 +69,11 @@ function SeriesSelection({ onSelect }: { onSelect: (series: Series) => void }) {
     // Hae sarjat API:sta
     // api.getActiveSeries().then(setSeries);
   }, []);
-
+  console.log("sarjat",series)
   return (
     <div>
       <h2>Valitse sarja</h2>
+      aaa
       <div className="series-grid">
         {series.map(s => (
           <button 

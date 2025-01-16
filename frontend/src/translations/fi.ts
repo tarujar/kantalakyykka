@@ -51,7 +51,14 @@ export const translations = {
     requiredField: 'Pakollinen kenttä',
     invalidTeamSize: 'Väärä pelaajamäärä pelityypille',
     teamRequired: 'Valitse molemmat joukkueet'
+  },
+  nav: {
+    home: 'Koti',
+    games: 'Pelit',
+    teams: 'Joukkueet',
+    players: 'Pelaajat',
+    series: 'Sarjat'
   }
 };
 
-export type TranslationKey = keyof typeof translations; 
+export type TranslationKey = keyof typeof translations;
