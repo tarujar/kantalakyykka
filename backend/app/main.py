@@ -7,8 +7,6 @@ from typing import AsyncGenerator
 from random import choices
 import os
 
-from app.api.v1 import players, series, game_types, games
-
 max_age = 3600
 
 @asynccontextmanager
@@ -38,7 +36,7 @@ async def session_middleware(request: Request, call_next):
     else:
         request.scope['session'] = "".join(choices("asdasdqasdqqqq", k=128))
     response = await call_next(request)
-    response.set_cookie("session", value=request.session,
+    response.set_cookie("session", value=request.scope['session'],
                         max_age=max_age, httponly=True)
     return response
 
@@ -48,7 +46,7 @@ class PermissionFailedException(Exception):
 
 def permission_failed_handler(request: Request, exc: PermissionFailedException):
     """shows an error page if the users authentication scope fails to meet the requirements"""
-    return HTMLResponse(content="templates/permission_failed.html", status_code=401)
+    return HTMLResponse(content=open("templates/permission_failed.html").read(), status_code=401)
 
 app.add_exception_handler(PermissionFailedException, permission_failed_handler)
 

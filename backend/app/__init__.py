@@ -1,3 +1,3 @@
 from database.database import engine, Base, get_db, init_db
-from main import app
+from .main import app
 # ...other package-level imports if needed...
