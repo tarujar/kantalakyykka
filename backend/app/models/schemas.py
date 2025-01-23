@@ -17,8 +17,7 @@ class GameType(BaseModel):
     name: str
     max_players: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PlayerBase(BaseModel):
     name: str
@@ -30,10 +29,8 @@ class PlayerCreate(PlayerBase):
 class Player(BaseModel):
     id: Optional[int]
     name: str
-    position: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SeriesCreate(BaseModel):
     name: str
@@ -53,8 +50,7 @@ class Series(BaseModel):
     name: str
     max_players: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TeamInSeriesCreate(BaseModel):
     series_id: int
@@ -71,8 +67,7 @@ class Team(BaseModel):
     id: Optional[int]
     name: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TeamInSeries(TeamInSeriesCreate):
     id: Optional[int] = None
@@ -98,7 +93,8 @@ class SingleThrowCreate(BaseModel):
 
     @field_validator('throw_score')
     def validate_throw_score(cls, v, values):
-        throw_type = values.data.get('throw_type')
+
+        throw_type = values.get('throw_type')
         if throw_type == ThrowResult.VALID and not -80 <= v <= 80:
             raise ValueError("Valid throw score must be between -80 and 80")
         elif throw_type != ThrowResult.VALID and v != 0:
@@ -110,7 +106,7 @@ class SingleThrow(SingleThrowCreate):
 
     model_config = ConfigDict(from_attributes=True)
 
-class SingleRoundThrowsCreate(BaseModel):
+class SingleRoundThrowCreate(BaseModel):
     game_id: int
     game_set_index: int = Field(ge=1, le=2)
     throw_position: int = Field(ge=1, le=5)
@@ -121,7 +117,7 @@ class SingleRoundThrowsCreate(BaseModel):
     throw_3: int
     throw_4: int
 
-class SingleRoundThrows(SingleRoundThrowsCreate):
+class SingleRoundThrow(SingleRoundThrowCreate):
     id: int
 
     @model_validator(mode='after')
@@ -153,7 +149,27 @@ class Game(BaseModel):
     id: Optional[int]
     type_id: int
     series_id: int
-    starting_team_id: int
+    round: Optional[str]
+    is_playoff: Optional[bool]
+    game_date: date
+    team_1_id: int
+    team_2_id: int
+    score_1_1: int
+    score_1_2: int
+    score_2_1: int
+    score_2_2: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
+
+class UserBase(BaseModel):
+    username: str
+    email: EmailStr
+
+class UserCreate(UserBase):
+    password: str
+
+class User(UserBase):
+    id: Optional[int]
+    created_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)

@@ -25,6 +25,18 @@ CREATE TABLE players (
     CONSTRAINT valid_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
+-- Add the users table
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (username),
+    UNIQUE (email),
+    CONSTRAINT valid_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+);
+
 -- sarja OKL-A-2024, HKL-2025, PKL-2026 jne
 CREATE TABLE series (
     id SERIAL PRIMARY KEY,
@@ -69,6 +81,7 @@ CREATE TABLE team_history (
 -- Games and scoring  // Pelitulokset
 CREATE TABLE games (
     id SERIAL PRIMARY KEY,
+    -- type_id INTEGER REFERENCES game_types(id) NOT NULL,
     round TEXT NULL,
     is_playoff BOOLEAN DEFAULT false,
     series_id INTEGER REFERENCES series(id),

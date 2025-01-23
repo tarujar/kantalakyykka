@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from database.models import GameType, Player, Game, Series, TeamInSeries
+from app.models.models import GameType, Player, Game, Series, TeamInSeries
 from app.models import GameTypeCreate, SeriesCreate, TeamInSeries
 
 mock_game_types = [

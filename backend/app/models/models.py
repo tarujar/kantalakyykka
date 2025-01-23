@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, Enum, Text, TIMESTAMP, Table
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, Enum, Text, TIMESTAMP, Table, UniqueConstraint
 from sqlalchemy.orm import declarative_base
 import enum
 from datetime import datetime, timezone
@@ -33,6 +32,14 @@ class Player(Base):
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
     email = Column(String, unique=True, nullable=False)
 
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
+
 class Series(Base):
     __tablename__ = "series"
     id = Column(Integer, primary_key=True, index=True)
@@ -65,9 +72,9 @@ class TeamHistory(Base):
 class Game(Base):
     __tablename__ = "games"
     id = Column(Integer, primary_key=True, index=True)
+    series_id = Column(Integer, ForeignKey("series.id"), nullable=False)
     round = Column(String)
     is_playoff = Column(Boolean, default=False)
-    series_id = Column(Integer, ForeignKey("series.id"))
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
     game_date = Column(Date, nullable=False)
     team_1_id = Column(Integer, ForeignKey("teams_in_series.id"), nullable=False)
@@ -76,6 +83,9 @@ class Game(Base):
     score_1_2 = Column(Integer, nullable=False)
     score_2_1 = Column(Integer, nullable=False)
     score_2_2 = Column(Integer, nullable=False)
+    __table_args__ = (
+        UniqueConstraint('series_id', 'game_date', 'team_1_id', 'team_2_id', 'round'),
+    )
 
 class SingleThrow(Base):
     __tablename__ = "single_throw"

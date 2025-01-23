@@ -1,27 +1,53 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import FileResponse, HTMLResponse
 from app.api.router import api_router
-from database.database import init_db
+from database import init_db
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 from random import choices
 import os
+from app.admin import init_admin
+from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
+import logging
+
+load_dotenv()  # Load environment variables from .env file
 
 max_age = 3600
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_db()
-    yield
+    await init_admin(app)
+    yield  # Ensure the context manager yields control
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan)  # Ensure the lifespan context manager is used
 
 # Include the API router
 app.include_router(api_router, prefix="/api/v1")
 
+# CORS middleware
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    routes = [
+        {"path": route.path, "name": route.name}
+        for route in app.routes
+        if not route.path.startswith("/openapi") and route.name not in ["swagger_ui_html", "swagger_ui_redirect", "redoc_html"]
+    ]
+    return {"routes": routes}
 
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
@@ -53,4 +79,5 @@ app.add_exception_handler(PermissionFailedException, permission_failed_handler)
 # Ensure the app instance is correctly defined
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))  # Read the port from environment variables
+    uvicorn.run(app, host="0.0.0.0", port=port)

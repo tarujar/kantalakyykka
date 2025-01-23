@@ -16,3 +16,5 @@ greenlet
 asyncpg
 pytest-mock
 respx
+fastapi-admin
+git+https://github.com/fastapi-admin/fastapi-admin.git#egg=fastapi-admin
