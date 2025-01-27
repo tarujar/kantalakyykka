@@ -132,8 +132,6 @@ CREATE TABLE single_round_throws (
     UNIQUE (game_id, game_set_index)
 );
 
-
-
 -- Yksinkertaiset tarkistukset tietokannassa
 CREATE OR REPLACE FUNCTION validate_team_player_count()
 RETURNS TRIGGER AS $$

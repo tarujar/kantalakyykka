@@ -1,83 +1,79 @@
-from fastapi import FastAPI, Request, Depends
-from fastapi.responses import FileResponse, HTMLResponse
-from app.api.router import api_router
-from database import init_db
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
-from random import choices
-import os
-from app.admin import init_admin
+from flask import Flask, request
+from flask_admin import Admin
+from flask_sqlalchemy import SQLAlchemy
+from flask_babel import Babel, lazy_gettext as _
 from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
+import os
 import logging
+from logging.handlers import RotatingFileHandler
+import traceback
+load_dotenv()
 
-load_dotenv()  # Load environment variables from .env file
-
-max_age = 3600
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    await init_db()
-    await init_admin(app)
-    yield  # Ensure the context manager yields control
-
-app = FastAPI(lifespan=lifespan)  # Ensure the lifespan context manager is used
-
-# Include the API router
-app.include_router(api_router, prefix="/api/v1")
-
-# CORS middleware
-origins = [
-    "http://localhost",
-    "http://localhost:8000",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config.update(
+    BABEL_DEFAULT_LOCALE='fi',
+    BABEL_TRANSLATION_DIRECTORIES=os.path.abspath(os.path.join(os.path.dirname(__file__), '../translations')),
+    LANGUAGES=['fi', 'en']
 )
 
-@app.get("/")
-def read_root():
-    routes = [
-        {"path": route.path, "name": route.name}
-        for route in app.routes
-        if not route.path.startswith("/openapi") and route.name not in ["swagger_ui_html", "swagger_ui_redirect", "redoc_html"]
-    ]
-    return {"routes": routes}
+db = SQLAlchemy(app)
+babel = Babel()
 
-@app.get("/favicon.ico", include_in_schema=False)
-def favicon():
-    favicon_path = os.path.join(os.path.dirname(__file__), "../static/favicon.svg")
-    return FileResponse(favicon_path)
+def get_locale():
+    # Force Finnish for testing
+    return 'fi'
 
-@app.middleware("http")
-async def session_middleware(request: Request, call_next):
-    cookie_val = request.cookies.get("session")
-    if cookie_val:
-        request.scope['session'] = cookie_val
-    else:
-        request.scope['session'] = "".join(choices("asdasdqasdqqqq", k=128))
-    response = await call_next(request)
-    response.set_cookie("session", value=request.scope['session'],
-                        max_age=max_age, httponly=True)
-    return response
+babel.init_app(app, locale_selector=get_locale)
 
-class PermissionFailedException(Exception):
-    def __init__(self, permissions: list):
-        self.permissions = permissions
+app.logger.info(f"BABEL_DEFAULT_LOCALE: {app.config['BABEL_DEFAULT_LOCALE']}")
+app.logger.info(f"BABEL_TRANSLATION_DIRECTORIES: {app.config['BABEL_TRANSLATION_DIRECTORIES']}")
 
-def permission_failed_handler(request: Request, exc: PermissionFailedException):
-    """shows an error page if the users authentication scope fails to meet the requirements"""
-    return HTMLResponse(content=open("templates/permission_failed.html").read(), status_code=401)
+# Setup logging
+if not os.path.exists('logs'):
+    os.mkdir('logs')
 
-app.add_exception_handler(PermissionFailedException, permission_failed_handler)
+log_files = [f'logs/app.log.{i}' for i in range(10)]
+for log_file in log_files:
+    if not os.path.exists(log_file):
+        open(log_file, 'a').close()
 
-# Ensure the app instance is correctly defined
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))  # Read the port from environment variables
-    uvicorn.run(app, host="0.0.0.0", port=port)
+file_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+file_handler.setLevel(logging.INFO)
+app.logger.addHandler(file_handler)
+
+app.logger.setLevel(logging.INFO)
+app.logger.info('Application startup')
+
+
+try:
+    # Import models from models.py
+    from app.models.models import User, Player, GameType, Series, TeamInSeries, TeamHistory, Game, SingleThrow, SingleRoundThrow
+    # Import custom model views from admin_views.py
+    from app.admin_views import UserAdmin, PlayerAdmin, GameTypeAdmin, SeriesAdmin, TeamInSeriesAdmin, TeamHistoryAdmin, GameAdmin, SingleThrowAdmin, SingleRoundThrowAdmin
+    from app.utils import custom_gettext
+
+    admin = Admin(app, name=str(_('kyykka kanta hallinta')), template_mode='bootstrap4')
+    admin.add_view(UserAdmin(User, db.session))
+    admin.add_view(PlayerAdmin(Player, db.session))
+    admin.add_view(GameTypeAdmin(GameType, db.session))
+    admin.add_view(SeriesAdmin(Series, db.session))
+    admin.add_view(TeamInSeriesAdmin(TeamInSeries, db.session))
+    admin.add_view(GameAdmin(Game, db.session))
+
+
+    @app.route('/')
+    def index():
+        greeting = _('hello_world')  # Use the imported lazy_gettext directly
+        app.logger.info(f"Greeting: {greeting}")
+        return f"<h1>{str(greeting)}</h1>"  # Convert lazy string to regular string
+
+    if __name__ == '__main__':
+        db.create_all()
+        app.run(port=int(os.getenv('PORT')))
+except Exception as e:
+    app.logger.error("Error during application startup", exc_info=e)
+    app.logger.error(traceback.format_exc())

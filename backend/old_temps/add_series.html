@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+{% block page_body %}
+    <div class="row">
+        <div class="col-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title">
+                        Add New Series
+                    </div>
+                    <form action="/api/v1/series/" method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="season_type" class="form-label">Season Type</label>
+                            <select class="form-control" id="season_type" name="season_type" required>
+                                <option value="summer">Summer</option>
+                                <option value="winter">Winter</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="year" name="year" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="upcoming">Upcoming</option>
+                                <option value="ongoing">Ongoing</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="game_type_id" class="form-label">Game Type ID</label>
+                            <select class="form-control" id="game_type_id" name="game_type_id" required>
+                                {% for game_type in game_types %}
+                                    <option value="{{ game_type.id }}">{{ game_type.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Series</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from typing import List
 from database.database import get_db
 from ...models.schemas import SeriesCreate, Series, TeamInSeriesCreate, TeamInSeries
@@ -11,12 +12,28 @@ logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=Series)
 async def create_series(
-    series: SeriesCreate,
+    name: str = Form(...),
+    season_type: str = Form(...),
+    year: int = Form(...),
+    status: str = Form("upcoming"),
+    registration_open: bool = Form(True),
+    game_type_id: int = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
+    series = SeriesCreate(
+        name=name,
+        season_type=season_type,
+        year=year,
+        status=status,
+        registration_open=registration_open,
+        game_type_id=game_type_id
+    )
     try:
         db_series = await series_service.create_series(db=db, series=series)
         return db_series
+    except IntegrityError as e:
+        logger.error(f"Error creating series: {e}")
+        raise HTTPException(status_code=400, detail="Series with the same NAME and YEAR already exists")
     except Exception as e:
         logger.error(f"Error creating series: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

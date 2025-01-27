@@ -16,5 +16,12 @@ greenlet
 asyncpg
 pytest-mock
 respx
-fastapi-admin
-git+https://github.com/fastapi-admin/fastapi-admin.git#egg=fastapi-admin
+jinja2
+flask==2.3.3
+flask-admin
+flask-login
+flask-sqlalchemy
+gunicorn
+flask-babel
+wtforms==2.3.0
+wtforms_sqlalchemy

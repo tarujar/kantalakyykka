@@ -1,0 +1,45 @@
+{% extends 'layout.html' %}
+{% block page_body %}
+    <div class="row">
+        <div class="col-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title">
+                        Edit Series
+                    </div>
+                    {% if success %}
+                        <div class="alert alert-success" role="alert">
+                            Series updated successfully!
+                        </div>
+                    {% endif %}
+                    <form action="/admin/series/edit/{{ series.id }}" method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ series.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="season_type" class="form-label">Season Type</label>
+                            <select class="form-control" id="season_type" name="season_type" required>
+                                <option value="summer" {% if series.season_type == 'summer' %}selected{% endif %}>Summer</option>
+                                <option value="winter" {% if series.season_type == 'winter' %}selected{% endif %}>Winter</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="year" name="year" value="{{ series.year }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-control" id="status" name="status" required>
+                                <option value="upcoming" {% if series.status == 'upcoming' %}selected{% endif %}>Upcoming</option>
+                                <option value="ongoing" {% if series.status == 'ongoing' %}selected{% endif %}>Ongoing</option>
+                                <option value="completed" {% if series.status == 'completed' %}selected{% endif %}>Completed</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Series</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

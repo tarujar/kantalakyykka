@@ -1,0 +1,131 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: fi\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "hello_world"
+msgstr "Hei, maailma!"
+
+msgid "my_admin"
+msgstr "Minun Ylläpitäjä"
+
+msgid "user"
+msgstr "Käyttäjä"
+
+msgid "player"
+msgstr "Pelaaja"
+
+msgid "game_type"
+msgstr "Pelityyppi"
+
+msgid "series"
+msgstr "Sarja"
+
+msgid "team_in_series"
+msgstr "Joukkue Sarjassa"
+
+msgid "team_history"
+msgstr "Joukkueen Historia"
+
+msgid "game"
+msgstr "Peli"
+
+msgid "single_throw"
+msgstr "Yksittäinen Heitto"
+
+msgid "single_round_throw"
+msgstr "Yksittäinen Kierros Heitto"
+
+msgid "username"
+msgstr "Käyttäjänimi"
+
+msgid "email"
+msgstr "Sähköposti"
+
+msgid "password"
+msgstr "Salasana"
+
+msgid "created_at"
+msgstr "Luotu"
+
+msgid "name"
+msgstr "Nimi"
+
+msgid "max_players"
+msgstr "Maksimi Pelaajat"
+
+msgid "season_type"
+msgstr "Kausityyppi"
+
+msgid "year"
+msgstr "Vuosi"
+
+msgid "status"
+msgstr "Tila"
+
+msgid "registration_open"
+msgstr "Rekisteröinti Auki"
+
+msgid "team_name"
+msgstr "Joukkueen Nimi"
+
+msgid "team_abbreviation"
+msgstr "Joukkueen Lyhenne"
+
+msgid "contact_player"
+msgstr "Yhteyshenkilö Pelaaja"
+
+msgid "round"
+msgstr "Kierros"
+
+msgid "is_playoff"
+msgstr "Onko Pudotuspelit"
+
+msgid "game_date"
+msgstr "Päivämäärä"
+
+msgid "score"
+msgstr "Pisteet"
+
+msgid "home_team"
+msgstr "Kotijoukkue"
+
+msgid "away_team"
+msgstr "Vierasjoukkue"
+
+msgid "previous_registration"
+msgstr "Edellinen Rekisteröinti"
+
+msgid "next_registration"
+msgstr "Seuraava Rekisteröinti"
+
+msgid "relation_type"
+msgstr "Suhteen Tyyppi"
+
+msgid "notes"
+msgstr "Muistiinpanot"
+
+msgid "game_set_index"
+msgstr "Pelisetti Indeksi"
+
+msgid "throw_type"
+msgstr "Heittotyyppi"
+
+msgid "throw_score"
+msgstr "Heittopisteet"
+
+msgid "throw_position"
+msgstr "Heittopaikka"
+
+msgid "throw_1"
+msgstr "Heitto 1"
+
+msgid "throw_2"
+msgstr "Heitto 2"
+
+msgid "throw_3"
+msgstr "Heitto 3"
+
+msgid "throw_4"
+msgstr "Heitto 4"

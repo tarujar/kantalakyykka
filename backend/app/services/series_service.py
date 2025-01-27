@@ -1,15 +1,22 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from typing import List, Dict
+from datetime import datetime
 from app.models.models import roster_players_in_series, Series as SeriesModel, TeamInSeries as TeamInSeriesModel
 from ..models.schemas import SeriesCreate, TeamInSeries
 
 async def create_series(db: AsyncSession, series: SeriesCreate) -> SeriesModel:
     db_series = SeriesModel(**series.model_dump())
+    db_series.created_at = datetime.now()  # Set created_at to a naive datetime
     db.add(db_series)
-    await db.commit()
-    await db.refresh(db_series)
-    return db_series
+    try:
+        await db.commit()
+        await db.refresh(db_series)
+        return db_series
+    except IntegrityError as e:
+        await db.rollback()
+        raise e
 
 async def get_series(db: AsyncSession, series_id: int) -> SeriesModel:
     result = await db.execute(select(SeriesModel).filter(SeriesModel.id == series_id))

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator, model_validator
 from enum import Enum
-from typing import List, Optional, Literal
+from typing import Optional, Literal
 from datetime import date, datetime
 
 class ThrowResult(str, Enum):
@@ -29,6 +29,8 @@ class PlayerCreate(PlayerBase):
 class Player(BaseModel):
     id: Optional[int]
     name: str
+    email: EmailStr
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -48,7 +50,12 @@ class SeriesCreate(BaseModel):
 class Series(BaseModel):
     id: Optional[int]
     name: str
-    max_players: int
+    season_type: str
+    year: int
+    status: str
+    registration_open: bool
+    game_type_id: int
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -69,8 +76,12 @@ class Team(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class TeamInSeries(TeamInSeriesCreate):
-    id: Optional[int] = None
+class TeamInSeries(BaseModel):
+    id: Optional[int]
+    series_id: int
+    team_name: str
+    team_abbreviation: str
+    contact_player_id: int
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -81,8 +92,12 @@ class TeamHistoryCreate(BaseModel):
     relation_type: str
     notes: Optional[str]
 
-class TeamHistory(TeamHistoryCreate):
+class TeamHistory(BaseModel):
     id: int
+    previous_registration_id: int
+    next_registration_id: int
+    relation_type: str
+    notes: Optional[str]
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -95,14 +110,16 @@ class SingleThrowCreate(BaseModel):
     def validate_throw_score(cls, v, values):
 
         throw_type = values.get('throw_type')
-        if throw_type == ThrowResult.VALID and not -80 <= v <= 80:
+        if (throw_type == ThrowResult.VALID and not -80 <= v <= 80):
             raise ValueError("Valid throw score must be between -80 and 80")
-        elif throw_type != ThrowResult.VALID and v != 0:
+        elif (throw_type != ThrowResult.VALID and v != 0):
             raise ValueError("Non-valid throws must have score 0")
         return v
 
-class SingleThrow(SingleThrowCreate):
+class SingleThrow(BaseModel):
     id: int
+    throw_type: ThrowResult
+    throw_score: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -117,13 +134,17 @@ class SingleRoundThrowCreate(BaseModel):
     throw_3: int
     throw_4: int
 
-class SingleRoundThrow(SingleRoundThrowCreate):
+class SingleRoundThrow(BaseModel):
     id: int
-
-    @model_validator(mode='after')
-    def validate_unique_game_set_position(self):
-        # Note: Actual DB-level uniqueness check needed in service layer
-        return self
+    game_id: int
+    game_set_index: int
+    throw_position: int
+    home_team: bool
+    player_id: int
+    throw_1: int
+    throw_2: int
+    throw_3: int
+    throw_4: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -168,8 +189,11 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-class User(UserBase):
+class User(BaseModel):
     id: Optional[int]
-    created_at: Optional[datetime]
+    username: str
+    email: EmailStr
+    hashed_password: str
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

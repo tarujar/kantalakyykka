@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Depends
 from fastapi_admin.app import FastAPIAdmin
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi_admin.depends import get_resources
+from fastapi_admin.models import AbstractAdmin
+
 from fastapi_admin.providers.login import UsernamePasswordProvider
 from sqlalchemy.future import select
 from database.database import SessionLocal
@@ -7,14 +11,16 @@ from redis import Redis
 from app.models import User
 from app.admin_models import (
     UserAdmin, GameTypeAdmin, PlayerAdmin, SeriesAdmin, TeamInSeriesAdmin,
-    TeamHistoryAdmin, GameAdmin, SingleThrowAdmin, SingleRoundThrowAdmin
+    TeamHistoryAdmin, GameAdmin, SingleThrowAdmin, SingleRoundThrowAdmin, Home
 )
+from fastapi.templating import Jinja2Templates
 import os
 from dotenv import load_dotenv
 
 load_dotenv()  # Load environment variables from .env file
 
 admin_app = FastAPIAdmin()
+templates = Jinja2Templates(directory="templates")
 
 class CustomUsernamePasswordProvider(UsernamePasswordProvider):
     async def get_admin_user(self, username: str, password: str):
@@ -46,20 +52,30 @@ async def init_admin(app: FastAPI):
         port=int(os.getenv('REDIS_PORT', 6379)),
         db=int(os.getenv('REDIS_DB', 0))
     )  # Add Redis instance
+    print(redis.ping()) 
 
     await admin_app.configure(
         logo_url="http://localhost:8000/favicon.ico",
-        template_folders=[os.path.join(os.path.dirname(__file__), "../templates")],  # Ensure the correct path
-        providers=[
-            CustomUsernamePasswordProvider(
-                admin_model=User,  # Use the compatible User model
-                login_logo_url="http://localhost:8000/favicon.ico"
-            ),
-        ],
-        redis=redis  # Pass Redis instance
+        template_folders=[(os.path.join(os.path.dirname(__file__), "../templates"))],
+        #template_folders=None,
+        #providers=[
+        #    CustomUsernamePasswordProvider(
+        #        admin_model=User,  # Use the compatible User model
+        #        login_logo_url="http://localhost:8000/favicon.ico"
+        #    ),
+        #],
+        redis=redis,  # Pass Redis instance
     )
 
-    # Register admin models
+    class SimpleAdmin(AbstractAdmin):
+        label="Simple"
+        resource_name = "Simple"
+        resource_label = "Simple Resource"
+
+    admin_app.register(SimpleAdmin)
+
+    # Register admin models and links
+    admin_app.register(Home)
     admin_app.register(UserAdmin)
     admin_app.register(GameTypeAdmin)
     admin_app.register(PlayerAdmin)
@@ -69,18 +85,20 @@ async def init_admin(app: FastAPI):
     admin_app.register(GameAdmin)
     admin_app.register(SingleThrowAdmin)
     admin_app.register(SingleRoundThrowAdmin)
-
+    
     print("Admin app initialized and mounted at /admin")
-    app.mount("/admin", admin_app, name="admin")  # Add name for the admin app route
+    app.mount("/admin", admin_app, name="admin")
 
     # Log the registered routes
-    for route in admin_app.routes:
+    for route in app.routes:
         print(f"Registered route: {route.path}")
 
     # Log the admin app configuration
     print(f"Admin app configuration: {admin_app.openapi()}")
-    #print(f"Admin app routes: {admin_app.routes}")
-
-    # Log the admin app router routes
+    print("Admin-sovelluksen reitit:")
     for route in admin_app.router.routes:
-        print(f"Admin app router route: {route.path}")
+        print(f"Path: {route.path}, Name: {route.name}")
+    print("Registered admin models:")
+    for resource in admin_app.resources:
+        print(f"Resource: {resource.label}")
+

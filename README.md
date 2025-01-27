@@ -2,9 +2,14 @@
 
 ## Create types for frontend
 
-`npx openapi-typescript-codegen --input http://localhost:8000/openapi.json --output ./frontend/src/types/`
+`npm run openapi-ts  ./frontend/src/openapi/`
 
 Or if types are mismatching in data. Do fix the types defined in backend code and run the script after that.
+
+## Schemas swagger
+
+You can see the schemas running from `http://localhost:8000/docs/`
+You can see the admin panel from `http://localhost:8000/admin/`
 
 ## Kyykän pelisanasto
 

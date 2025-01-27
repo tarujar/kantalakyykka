@@ -1,8 +1,20 @@
-from fastapi_admin.resources import Model
+from fastapi_admin.resources import Model, Link
 from fastapi_admin.widgets import displays, inputs
 from app.models import User, GameType, Player, Series, TeamInSeries, TeamHistory, Game, SingleThrow, SingleRoundThrow
+from fastapi_admin.models import AbstractAdmin
 
-class UserAdmin(Model):
+class Home(Link):
+    label = "Home"
+    icon = "fas fa-home"
+    url = "/admin"
+
+class GithubLink(Link):
+    label = "Github"
+    url = "https://github.com/fastapi-admin/fastapi-admin"
+    icon = "fab fa-github"
+    target = "_blank"
+
+class UserAdmin(AbstractAdmin):
     label = "User"
     model = User
     icon = "fas fa-user"

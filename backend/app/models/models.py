@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, Enum, Text, TIMESTAMP, Table, UniqueConstraint
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 import enum
 from datetime import datetime, timezone
 
@@ -24,13 +24,17 @@ class GameType(Base):
     name = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
     max_players = Column(Integer, nullable=False)
+    series = relationship("Series", back_populates="game_type")
 
 class Player(Base):
     __tablename__ = "players"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
+    name = Column(String(50), nullable=False)
+    email = Column(String(120), unique=True, nullable=False)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
-    email = Column(String, unique=True, nullable=False)
+
+    def __repr__(self):
+        return f'<Player {self.name}>'
 
 class User(Base):
     __tablename__ = "users"
@@ -49,6 +53,7 @@ class Series(Base):
     status = Column(String, nullable=False, default="upcoming")
     registration_open = Column(Boolean, default=True)
     game_type_id = Column(Integer, ForeignKey("game_types.id"), nullable=False)
+    game_type = relationship("GameType", back_populates="series")
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
 
 class TeamInSeries(Base):
