@@ -1,5 +1,18 @@
 # Scripts
 
+## Startup script
+
+### database
+
+`sh start_database.sh``
+
+### app startup
+
+`sh startup.sh`
+
+make sure the migrations are executable
+`chmod +x startup.sh`
+
 ## Create types for frontend
 
 `npm run openapi-ts  ./frontend/src/openapi/`
