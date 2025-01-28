@@ -1,0 +1,50 @@
+{% extends 'admin/model/edit.html' %}
+
+{% block tail %}
+    {{ super() }}
+    <script>
+        $(document).ready(function() {
+            var series = $('#series');
+            var team = $('#registration_id');
+            
+            // Initial load of teams if series is selected
+            if (series.val()) {
+                loadTeams(series.val());
+            } else {
+                team.prop('disabled', true);
+            }
+
+            series.change(function() {
+                var series_id = $(this).val();
+                if (series_id) {
+                    loadTeams(series_id);
+                } else {
+                    team.prop('disabled', true);
+                    team.empty();
+                    team.append($('<option></option>')
+                        .attr('value', '')
+                        .text('{{ _("Select a team...") }}'));
+                }
+            });
+
+            function loadTeams(series_id) {
+                team.prop('disabled', false);
+                $.getJSON('/admin/api/teams/' + series_id, function(data) {
+                    var currentTeam = team.val();
+                    team.empty();
+                    team.append($('<option></option>')
+                        .attr('value', '')
+                        .text('{{ _("Select a team...") }}'));
+                    $.each(data, function(index, item) {
+                        team.append($('<option></option>')
+                            .attr('value', item[0])
+                            .text(item[1]));
+                    });
+                    if (currentTeam) {
+                        team.val(currentTeam);
+                    }
+                });
+            }
+        });
+    </script>
+{% endblock %}

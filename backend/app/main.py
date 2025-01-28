@@ -3,6 +3,7 @@ from flask_admin import Admin
 from flask_sqlalchemy import SQLAlchemy
 from flask_babel import Babel, lazy_gettext as _
 from dotenv import load_dotenv
+from flask_wtf.csrf import CSRFProtect
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -20,6 +21,9 @@ app.config.update(
 
 db = SQLAlchemy(app)
 babel = Babel()
+
+# Add CSRF protection
+csrf = CSRFProtect(app)
 
 def get_locale():
     # Force Finnish for testing
@@ -50,19 +54,24 @@ app.logger.info('Application startup')
 
 
 try:
-    # Import models from models.py
-    from app.models.models import User, Player, GameType, Series, TeamInSeries, TeamHistory, Game, SingleThrow, SingleRoundThrow
-    # Import custom model views from admin_views.py
-    from app.admin_views import UserAdmin, PlayerAdmin, GameTypeAdmin, SeriesAdmin, TeamInSeriesAdmin, TeamHistoryAdmin, GameAdmin, SingleThrowAdmin, SingleRoundThrowAdmin
+    from app.models.models import User, Player, GameType, Series, TeamInSeries, TeamHistory, Game, SingleThrow, SingleRoundThrow, RosterPlayersInSeries
+    from app.admin_views import (
+        UserAdmin, PlayerAdmin, GameTypeAdmin, SeriesAdmin, 
+        TeamInSeriesAdmin, TeamHistoryAdmin, GameAdmin, 
+        SingleThrowAdmin, SingleRoundThrowAdmin, RosterAdmin
+    )
     from app.utils import custom_gettext
+    from app.admin_views.views.game_score_sheet_view import GameScoreSheetAdmin
 
     admin = Admin(app, name=str(_('kyykka kanta hallinta')), template_mode='bootstrap4')
-    admin.add_view(UserAdmin(User, db.session))
-    admin.add_view(PlayerAdmin(Player, db.session))
-    admin.add_view(GameTypeAdmin(GameType, db.session))
-    admin.add_view(SeriesAdmin(Series, db.session))
-    admin.add_view(TeamInSeriesAdmin(TeamInSeries, db.session))
-    admin.add_view(GameAdmin(Game, db.session))
+    admin.add_view(UserAdmin(User, db.session, name=_('user')))
+    admin.add_view(PlayerAdmin(Player, db.session, name=_('player')))
+    admin.add_view(GameTypeAdmin(GameType, db.session, name=_('game_type')))
+    admin.add_view(SeriesAdmin(Series, db.session, name=_('series')))
+    admin.add_view(TeamInSeriesAdmin(TeamInSeries, db.session, name=_('team_in_series')))
+    admin.add_view(TeamHistoryAdmin(TeamHistory, db.session, name=_('team_history')))
+    admin.add_view(RosterAdmin(RosterPlayersInSeries, db.session, name=_('team_roster')))
+    admin.add_view(GameScoreSheetAdmin(Game, db.session, name=_('game_score_sheet')))
 
 
     @app.route('/')

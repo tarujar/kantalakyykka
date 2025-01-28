@@ -1,3 +1,7 @@
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
 from .models import (
     GameType,
     Player,
@@ -8,8 +12,8 @@ from .models import (
     Game,
     SingleThrow,
     SingleRoundThrow,
-    roster_players_in_series,
-    ThrowResult
+    ThrowResult,RosterPlayersInSeries
+    
 )
 
 from .schemas import (

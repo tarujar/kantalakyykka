@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from typing import List, Dict
 from datetime import datetime
-from app.models.models import roster_players_in_series, Series as SeriesModel, TeamInSeries as TeamInSeriesModel
+from app.models.models import Series as SeriesModel, TeamInSeries as TeamInSeriesModel
 from ..models.schemas import SeriesCreate, TeamInSeries
 
 async def create_series(db: AsyncSession, series: SeriesCreate) -> SeriesModel:
@@ -32,16 +32,6 @@ async def add_team_to_series(db: AsyncSession, series_id: int, team: TeamInSerie
     await db.commit()
     await db.refresh(db_team)
     return db_team
-
-async def add_player_to_team(db: AsyncSession, series_id: int, team_id: int, player_id: int) -> Dict:
-    await db.execute(
-        roster_players_in_series.insert().values(
-            registration_id=team_id,
-            player_id=player_id
-        )
-    )
-    await db.commit()
-    return {"registration_id": team_id, "player_id": player_id}
 
 async def update_series(db: AsyncSession, series_id: int, series: SeriesCreate) -> SeriesModel:
     db_series = await get_series(db, series_id)

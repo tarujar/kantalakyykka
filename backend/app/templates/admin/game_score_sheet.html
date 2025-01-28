@@ -1,0 +1,181 @@
+{% extends 'admin/master.html' %}
+
+{% block head %}
+    {{ super() }}
+    <script>
+        function autoFillForm() {
+            // Set series and teams if they exist
+            const seriesSelect = document.querySelector('select[name="series_id"]');
+            const team1Select = document.querySelector('select[name="team_1_id"]');
+            const team2Select = document.querySelector('select[name="team_2_id"]');
+
+            if (seriesSelect && seriesSelect.options.length > 0) {
+                seriesSelect.selectedIndex = 1;  // Select first actual series
+                seriesSelect.dispatchEvent(new Event('change'));
+            }
+
+            if (team1Select && team1Select.options.length > 0) {
+                team1Select.selectedIndex = 1;  // Select first actual team
+            }
+
+            if (team2Select && team2Select.options.length > 0) {
+                team2Select.selectedIndex = 2;  // Select second actual team
+            }
+
+            // Auto-fill throw values
+            const possibleThrows = [0, 2, 4, 6, 8, -2, -4, -6];  // Valid throw values
+            const throwInputs = document.querySelectorAll('input[name*="throw_"]');
+            
+            throwInputs.forEach(input => {
+                const randomIndex = Math.floor(Math.random() * possibleThrows.length);
+                input.value = possibleThrows[randomIndex];
+            });
+
+            // Auto-fill player selections
+            const playerSelects = document.querySelectorAll('select[name*="player_id"]');
+            playerSelects.forEach(select => {
+                if (select.options.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * (select.options.length - 1)) + 1;
+                    select.selectedIndex = randomIndex;
+                }
+            });
+        }
+    </script>
+    <style>
+        .game-score-sheet-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .game-score-sheet-table th,
+        .game-score-sheet-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .game-score-sheet-table input[type="text"] {
+            max-width: 50px;
+
+        }
+        .game-score-sheet-table select {
+            min-width: 150px;
+        }
+        .form-actions {
+            margin: 20px 0;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    {% if model %}
+    <form method="post" action="{{ url_for('.edit_view', id=model.id) }}" enctype="multipart/form-data">
+    {% else %}
+    <form method="post" action="{{ url_for('.create_view') }}" enctype="multipart/form-data">
+    {% endif %}
+        {{ form.csrf_token }}
+        
+        <!-- Add Auto-fill button at the top -->
+        <div class="form-actions mb-3">
+            <button type="button" class="btn btn-secondary" onclick="autoFillForm()">
+                {{ _('Auto-fill Test Data') }}
+            </button>
+        </div>
+
+        <table class="game-score-sheet-table">
+            <thead>
+                <tr>
+                    <th>{{ _('Round') }}</th>
+                    <th>{{ _('Team') }}</th>
+                    <th>{{ _('Player') }}</th>
+                    <th>{{ _('Throw 1') }}</th>
+                    <th>{{ _('Throw 2') }}</th>
+                    <th>{{ _('Throw 3') }}</th>
+                    <th>{{ _('Throw 4') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for round in [1, 2] %}
+                    {% if round == 1 %}
+                        {% for player_index in range(4) %}
+                            {# First team's turn #}
+                            {% set throw_form = form.team_1_round_throws.entries[0] %}
+                            {% set single_throw = throw_form['round_' ~ round].entries[player_index] %}
+                            <tr class="single-throw-form">
+                                <td>{{ round }}</td>
+                                <td>{{ _('Team 1') }}</td>
+                                <td>{{ single_throw.player_id }}</td>
+                                <td>{{ single_throw.throw_1 }}</td>
+                                <td>{{ single_throw.throw_2 }}</td>
+                                <td>{{ single_throw.throw_3 }}</td>
+                                <td>{{ single_throw.throw_4 }}</td>
+                            </tr>
+                        {% endfor %}
+                        {% for player_index in range(4) %}
+                            {# Second team's turn #}
+                            {% set throw_form = form.team_2_round_throws.entries[0] %}
+                            {% set single_throw = throw_form['round_' ~ round].entries[player_index] %}
+                            <tr class="single-throw-form">
+                                <td>{{ round }}</td>
+                                <td>{{ _('Team 2') }}</td>
+                                <td>{{ single_throw.player_id }}</td>
+                                <td>{{ single_throw.throw_1 }}</td>
+                                <td>{{ single_throw.throw_2 }}</td>
+                                <td>{{ single_throw.throw_3 }}</td>
+                                <td>{{ single_throw.throw_4 }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        {% for player_index in range(4) %}
+                            {# Second team's turn #}
+                            {% set throw_form = form.team_2_round_throws.entries[0] %}
+                            {% set single_throw = throw_form['round_' ~ round].entries[player_index] %}
+                            <tr class="single-throw-form">
+                                <td>{{ round }}</td>
+                                <td>{{ _('Team 2') }}</td>
+                                <td>{{ single_throw.player_id }}</td>
+                                <td>{{ single_throw.throw_1 }}</td>
+                                <td>{{ single_throw.throw_2 }}</td>
+                                <td>{{ single_throw.throw_3 }}</td>
+                                <td>{{ single_throw.throw_4 }}</td>
+                            </tr>
+                        {% endfor %}
+                        {% for player_index in range(4) %}
+                            {# First team's turn #}
+                            {% set throw_form = form.team_1_round_throws.entries[0] %}
+                            {% set single_throw = throw_form['round_' ~ round].entries[player_index] %}
+                            <tr class="single-throw-form">
+                                <td>{{ round }}</td>
+                                <td>{{ _('Team 1') }}</td>
+                                <td>{{ single_throw.player_id }}</td>
+                                <td>{{ single_throw.throw_1 }}</td>
+                                <td>{{ single_throw.throw_2 }}</td>
+                                <td>{{ single_throw.throw_3 }}</td>
+                                <td>{{ single_throw.throw_4 }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
+            <a href="{{ url_for('.index_view') }}" class="btn btn-default">{{ _('Cancel') }}</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .single-throw-form {
+        margin-bottom: 10px;
+    }
+    .form-actions {
+        margin: 20px 0;
+    }
+    .game-score-sheet-table td {
+        padding: 8px;
+    }
+    input[type="number"] {
+        width: 80px;
+    }
+</style>
+{% endblock %}

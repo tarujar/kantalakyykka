@@ -1,0 +1,56 @@
+{% extends 'admin/model/create.html' %}
+
+{% block tail %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const teamSelect = document.querySelector('select[name="registration_id"]');
+    if (!teamSelect) return;
+
+    {% if team_choices %}
+    const teams = {{ team_choices|tojson|safe }};
+    const currentValue = teamSelect.value;
+    
+    // Store original options before clearing
+    const originalOptions = Array.from(teamSelect.options);
+    teamSelect.innerHTML = '';
+    
+    // Add empty option if no selection
+    if (!currentValue) {
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = '{{ _("Select a team...") }}';
+        teamSelect.appendChild(emptyOption);
+        emptyOption.selected = true;
+    }
+    
+    // Add grouped options
+    teams.forEach(([seriesName, teamList]) => {
+        const group = document.createElement('optgroup');
+        group.label = seriesName;
+        
+        teamList.forEach(([id, name]) => {
+            const option = document.createElement('option');
+            option.value = String(id);
+            option.textContent = name;
+            if (String(id) === currentValue) {
+                option.selected = true;
+            }
+            group.appendChild(option);
+        });
+        
+        teamSelect.appendChild(group);
+    });
+
+    // Initialize select2 if available
+    if (typeof jQuery !== 'undefined' && jQuery().select2) {
+        jQuery(teamSelect).select2({
+            width: '100%',
+            placeholder: '{{ _("Select a team...") }}',
+            dropdownParent: jQuery(teamSelect).parent()
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

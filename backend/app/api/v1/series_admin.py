@@ -6,11 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from database.database import get_db
 from app.services import game_types_service, series_service
 from app.models.schemas import SeriesCreate
-import logging
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
-logger = logging.getLogger(__name__)
 
 @router.get("/series/add", response_class=HTMLResponse)
 async def add_series(request: Request, db: AsyncSession = Depends(get_db)):
@@ -35,6 +33,7 @@ async def update_series(
     status: str = Form("upcoming"),
     registration_open: bool = Form(True),
     game_type_id: int = Form(...),
+    is_cup_league: bool = Form(False),
     db: AsyncSession = Depends(get_db)
 ):
     series_data = SeriesCreate(
@@ -43,16 +42,20 @@ async def update_series(
         year=year,
         status=status,
         registration_open=registration_open,
-        game_type_id=game_type_id
+        game_type_id=game_type_id,
+        is_cup_league=is_cup_league
     )
     try:
         updated_series = await series_service.update_series(db, series_id, series_data)
         if not updated_series:
             raise HTTPException(status_code=404, detail="Series not found")
-        return templates.TemplateResponse("edit_series.html", {"request": request, "series": updated_series, "game_types": await game_types_service.list_game_types(db), "success": True})
-    except IntegrityError as e:
-        logger.error(f"Error updating series: {e}")
+        return templates.TemplateResponse("edit_series.html", {
+            "request": request, 
+            "series": updated_series, 
+            "game_types": await game_types_service.list_game_types(db), 
+            "success": True
+        })
+    except IntegrityError:
         raise HTTPException(status_code=400, detail="Series with the same name and year already exists")
-    except Exception as e:
-        logger.error(f"Error updating series: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")

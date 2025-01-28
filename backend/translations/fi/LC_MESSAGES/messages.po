@@ -129,3 +129,87 @@ msgstr "Heitto 3"
 
 msgid "throw_4"
 msgstr "Heitto 4"
+
+msgid "unique_team_name_in_series"
+msgstr "Tämä joukkueen nimi on jo käytössä tässä sarjassa."
+
+msgid "unique_team_abbr_in_series"
+msgstr "Tämä joukkueen lyhenne on jo käytössä tässä sarjassa."
+
+msgid "unique_email"
+msgstr "Tämä sähköpostiosoite on jo rekisteröity."
+
+msgid "series_name_year_key"
+msgstr "Sarja tällä nimellä ja vuodella on jo olemassa."
+
+msgid "invalid_data_format"
+msgstr "Kentän tiedoissa on virheitä. Tarkista syöttämäsi tiedot."
+
+msgid "database_constraint_was_violated"
+msgstr "Tietokannan rajoite estää toiminnon. Tarkista syöttämäsi tiedot."
+
+msgid "teams_in_series_series_id_team_abbreviation_key"
+msgstr "Virheellinen tietomuoto. Tarkista syöttämäsi tiedot."
+
+msgid "team_abbreviation_length_error"
+msgstr "Joukkueen lyhenteen tulee olla enintään 10 merkkiä"
+
+msgid "team_name_length_error"
+msgstr "Joukkueen nimen tulee olla enintään 100 merkkiä"
+
+msgid "teams_in_series_series_id_team_name_key"
+msgstr "Tämä joukkueen nimi on jo käytössä tässä sarjassa."
+
+msgid "roster_players_in_series_registration_id_player_id_key"
+msgstr "Tämä pelaaja on jo käytössä tässä sarjassa."
+
+msgid "teams_in_series_series_id_team_abbreviation_key"
+msgstr "Tämä joukkueen lyhenne on jo käytössä tässä sarjassa."
+
+#msgid "Team abbreviation must be 10 characters or less"
+#msgstr "Joukkueen lyhenteen tulee olla enintään 10 merkkiä"
+
+#msgid "Team name must be 100 characters or less"
+#msgstr "Joukkueen nimen tulee olla enintään 100 merkkiä"
+
+msgid "operation_successful"
+msgstr "Operaatio onnistui"
+
+msgid "operation_failed"
+msgstr "Operaatio epäonnistui"
+
+msgid "creation_successful"
+msgstr "Luominen onnistui"
+
+msgid "creation_failed"
+msgstr "Luominen epäonnistui"
+
+msgid "save_successful"
+msgstr "Tallennus onnistui"
+
+msgid "save_failed"
+msgstr "Tallennus epäonnistui"
+
+msgid "delete_successful"
+msgstr "Poisto onnistui"
+
+msgid "delete_failed"
+msgstr "Poisto epäonnistui"
+
+msgid "kyykka kanta hallinta"
+msgstr "Kyykkäkannan hallinta"
+
+msgid "team_roster"
+msgstr "Joukkueen Kokoonpano"
+
+msgid "score_1_1"
+msgstr "1 joukkue 1. erätulos"
+
+msgid "score_1_2"
+msgstr "1 joukkue 2. erätulos"
+
+msgid "score_2_1"
+msgstr "2 joukkue 1. erätulos"
+
+msgid "score_2_2"
+msgstr "2 joukkue 2. erätulos"

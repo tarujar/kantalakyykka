@@ -39,8 +39,9 @@ class SeriesCreate(BaseModel):
     season_type: Literal['summer', 'winter']
     year: int
     status: Optional[Literal['upcoming', 'ongoing', 'completed']] = "upcoming"
-    registration_open: Optional[bool] = True
     game_type_id: int
+    registration_open: Optional[bool] = True
+    is_cup_league: Optional[bool] = False
 
     @model_validator(mode='after')
     def validate_unique_name_year(self):
@@ -53,8 +54,9 @@ class Series(BaseModel):
     season_type: str
     year: int
     status: str
-    registration_open: bool
     game_type_id: int
+    registration_open: bool
+    is_cup_league: bool
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

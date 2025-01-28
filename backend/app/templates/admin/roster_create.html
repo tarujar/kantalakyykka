@@ -1,0 +1,40 @@
+{% extends 'admin/model/create.html' %}
+
+{% block tail %}
+    {{ super() }}
+    <script>
+        $(document).ready(function() {
+            // Initialize form state
+            var series = $('#series');
+            var team = $('#registration_id');
+            var player = $('#player_id');
+
+            // Disable team select until series is chosen
+            team.prop('disabled', true);
+
+            series.change(function() {
+                var series_id = $(this).val();
+                if (series_id) {
+                    team.prop('disabled', false);
+                    $.getJSON('/admin/api/teams/' + series_id, function(data) {
+                        team.empty();
+                        team.append($('<option></option>')
+                            .attr('value', '')
+                            .text('{{ _("Select a team...") }}'));
+                        $.each(data, function(index, item) {
+                            team.append($('<option></option>')
+                                .attr('value', item[0])
+                                .text(item[1]));
+                        });
+                    });
+                } else {
+                    team.prop('disabled', true);
+                    team.empty();
+                    team.append($('<option></option>')
+                        .attr('value', '')
+                        .text('{{ _("Select a team...") }}'));
+                }
+            });
+        });
+    </script>
+{% endblock %}

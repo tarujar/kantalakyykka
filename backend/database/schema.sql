@@ -22,6 +22,7 @@ CREATE TABLE players (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     email VARCHAR(100) NOT NULL,
     UNIQUE (email),
+    gdpr_consent BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT valid_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
@@ -47,6 +48,7 @@ CREATE TABLE series (
     registration_open BOOLEAN DEFAULT true, -- datetimefield?
     game_type_id INTEGER REFERENCES game_types(id) NOT NULL, -- Viittaus pelityyppiin
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_cup_league BOOLEAN DEFAULT false, -- onko cup vai normi sarja
     UNIQUE (name, year)
 );
 
@@ -58,13 +60,19 @@ CREATE TABLE teams_in_series (
     team_abbreviation VARCHAR(10) NOT NULL,
     contact_player_id INTEGER REFERENCES players(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(series_id, team_name),         -- Joukkueen nimi on uniikki sarjassa
-    UNIQUE(series_id, team_abbreviation) -- Joukkueen lyhenne on uniikki sarjassa
+    group VARCHAR(50) DEFAULT NULL,
+    CONSTRAINT unique_team_name_in_series UNIQUE(series_id, team_name),         -- Joukkueen nimi on uniikki sarjassa
+    CONSTRAINT unique_team_abbr_in_series UNIQUE(series_id, team_abbreviation) -- Joukkueen lyhenne on uniikki sarjassa
 );
+
+-- Add custom error messages for the constraints
+COMMENT ON CONSTRAINT unique_team_name_in_series ON teams_in_series IS 'Team name must be unique within the series';
+COMMENT ON CONSTRAINT unique_team_abbr_in_series ON teams_in_series IS 'Team abbreviation must be unique within the series';
 
 CREATE TABLE roster_players_in_series (
     registration_id INTEGER REFERENCES teams_in_series(id),
     player_id INTEGER REFERENCES players(id),
+    PRIMARY KEY (registration_id, player_id),
     UNIQUE(registration_id, player_id)
 );
 
@@ -138,23 +146,24 @@ RETURNS TRIGGER AS $$
 DECLARE
     v_max_players INTEGER;
     v_active_players INTEGER;
+    v_game_type_name VARCHAR(100);
 BEGIN
-    -- Hae pelityypin maksimipelaajamäärä
-    SELECT gt.max_players INTO v_max_players
+    -- Hae pelityypin maksimipelaajamäärä ja nimi
+    SELECT gt.max_players, gt.name INTO v_max_players, v_game_type_name
     FROM game_types gt
     JOIN series s ON gt.id = s.game_type_id
     JOIN teams_in_series t ON s.id = t.series_id
     WHERE t.id = NEW.registration_id;
 
-    -- Lasketaan aktiivisten pelaajien määrä joukkueessa
-    SELECT COUNT(*) INTO v_active_players
+    -- Lasketaan aktiivisten pelaajien määrä joukkueessa, mukaan lukien uusi pelaaja
+    SELECT COUNT(*) + 1 INTO v_active_players
     FROM roster_players_in_series
     WHERE registration_id = NEW.registration_id;
 
     -- Tarkista, ettei aktiivisten pelaajien määrä ylitä rajaa
-    IF v_active_players >= v_max_players THEN
-        RAISE EXCEPTION 'Player limit exceeded: Only % players allowed for this game type',
-            v_max_players;
+    IF v_active_players > v_max_players THEN
+        RAISE EXCEPTION 'Player limit exceeded: Only % players allowed for the game type % (% players currently registered)',
+            v_max_players, v_game_type_name, v_active_players - 1;
     END IF;
 
     RETURN NEW;
@@ -166,3 +175,34 @@ CREATE TRIGGER validate_team_player_count_trigger
 BEFORE INSERT OR UPDATE ON roster_players_in_series
 FOR EACH ROW
 EXECUTE FUNCTION validate_team_player_count();
+
+CREATE OR REPLACE FUNCTION validate_game_teams()
+RETURNS TRIGGER AS $$
+DECLARE
+    team_1_series_id INTEGER;
+    team_2_series_id INTEGER;
+    is_cup BOOLEAN;
+BEGIN
+    -- Tarkista, onko sarja cup-sarja
+    SELECT is_cup_league INTO is_cup FROM series WHERE id = NEW.series_id;
+
+    -- Hae joukkueiden alkuperäiset sarjat
+    SELECT series_id INTO team_1_series_id FROM teams_in_series WHERE id = NEW.team_1_id;
+    SELECT series_id INTO team_2_series_id FROM teams_in_series WHERE id = NEW.team_2_id;
+
+    -- Normaalissa sarjassa joukkueiden täytyy olla samasta sarjasta
+    IF NOT is_cup AND team_1_series_id != team_2_series_id THEN
+        RAISE EXCEPTION 'In regular series games, both teams must belong to the same series';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Triggerin asettaminen games-tauluun
+CREATE TRIGGER validate_game_teams_trigger
+BEFORE INSERT OR UPDATE ON games
+FOR EACH ROW
+EXECUTE FUNCTION validate_game_teams();
+
+

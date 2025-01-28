@@ -1,21 +1,31 @@
 #!/bin/zsh
 
-#set -e  # Exit immediately if a command exits with a non-zero status
-#set -x  # Print commands and their arguments as they are executed
+# Source the .env file
+if [ -f .env ]; then
+    source .env
+else
+    echo ".env file not found"
+    exit 1
+fi
 
 echo "Navigating to the project directory..."
-# Navigate to the project directory
 cd "$(dirname "$0")"
 
-#echo "Killing existing Python and Uvicorn processes..."
-# Kill existing Python and Uvicorn processes
-#pkill -f python
-#pkill -f uvicorn
+# Check if port 8000 is in use and kill the process if it exists
+echo "Checking if port 8000 is in use..."
+if lsof -i :8000 > /dev/null; then
+    echo "Port 8000 is in use. Killing existing process..."
+    lsof -ti :8000 | xargs kill -9
+fi
+
+# Kill any existing Gunicorn processes
+echo "Cleaning up existing Gunicorn processes..."
+pkill -f gunicorn
 
 echo "Checking if PostgreSQL is running..."
 # Check if PostgreSQL is running
 if ! pg_isready -q; then
-    echo "PostgreSQL is not running. Please start the database server."
+    echo "PostgreSQL is not running. Please run ./start_database.sh first"
     exit 1
 fi
 
@@ -45,8 +55,17 @@ echo "Compiling translations..."
 pybabel compile -d translations
 
 echo "Setting up the database..."
-# Set up the database (if using Alembic for migrations)
-source venv/bin/activate  # Ensure alembic is available in the virtual environment
+# Check if database exists and create it if it doesn't
+if ! psql -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+    echo "Creating database '$DB_NAME'..."
+    createdb "$DB_NAME"
+    echo "Initializing schema for new database..."
+    psql -d "$DB_NAME" -f database/schema.sql
+    echo "Database created and schema initialized."
+fi
+
+echo "Running any pending Alembic migrations..."
+source venv/bin/activate
 alembic upgrade head
 
 echo "Creating admin user if it doesn't exist..."
@@ -55,4 +74,5 @@ echo "Creating admin user if it doesn't exist..."
 
 echo "Running the Flask application with Gunicorn..."
 # Run the Flask application with Gunicorn
-gunicorn -w 4 -b 127.0.0.1:8000 --reload app.main:app
+# Added timeout to allow for proper startup
+gunicorn -w 4 -b 127.0.0.1:8000 --reload --timeout 120 --reload-extra-file ./app/templates app.main:app

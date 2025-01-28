@@ -65,8 +65,9 @@ class SeriesAdmin(Model):
         inputs.Input("season_type", label="Season Type", display=displays.Display()),
         inputs.Input("year", label="Year", display=displays.Display()),
         inputs.Input("status", label="Status", display=displays.Display()),
-        inputs.Input("registration_open", label="Registration Open", display=displays.Display()),
         inputs.Input("game_type_id", label="Game Type ID", display=displays.Display()),
+        inputs.Input("registration_open", label="Registration Open", display=displays.Display()),
+        inputs.Input("is_cup_league", label="Is Cup League", display=displays.Display()),
         inputs.Input("created_at", label="Created At", display=displays.Display()),
     ]
 
@@ -81,6 +82,7 @@ class TeamInSeriesAdmin(Model):
         inputs.Input("series_id", label="Series ID", display=displays.Display()),
         inputs.Input("team_name", label="Team Name", display=displays.Display()),
         inputs.Input("team_abbreviation", label="Team Abbreviation", display=displays.Display()),
+        inputs.Input("group", label="Group", display=displays.Display()),
         inputs.Input("contact_player_id", label="Contact Player ID", display=displays.Display()),
         inputs.Input("created_at", label="Created At", display=displays.Display()),
     ]

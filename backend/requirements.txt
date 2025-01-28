@@ -25,3 +25,4 @@ gunicorn
 flask-babel
 wtforms==2.3.0
 wtforms_sqlalchemy
+Flask-WTF==1.2.1
