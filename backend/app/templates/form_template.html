@@ -1,0 +1,6 @@
+<form method="POST" action="{{ url_for('your_form_view') }}">
+    {{ form.hidden_tag() }}
+    <!-- ...existing form fields... -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="submit" value="Submit">
+</form>

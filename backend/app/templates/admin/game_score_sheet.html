@@ -1,18 +1,12 @@
-{% extends 'admin/master.html' %}
+{% extends 'admin/model/edit.html' %}
 
 {% block head %}
     {{ super() }}
     <script>
         function autoFillForm() {
-            // Set series and teams if they exist
-            const seriesSelect = document.querySelector('select[name="series_id"]');
+            // Set teams if they exist
             const team1Select = document.querySelector('select[name="team_1_id"]');
             const team2Select = document.querySelector('select[name="team_2_id"]');
-
-            if (seriesSelect && seriesSelect.options.length > 0) {
-                seriesSelect.selectedIndex = 1;  // Select first actual series
-                seriesSelect.dispatchEvent(new Event('change'));
-            }
 
             if (team1Select && team1Select.options.length > 0) {
                 team1Select.selectedIndex = 1;  // Select first actual team
@@ -23,11 +17,12 @@
             }
 
             // Auto-fill throw values
-            const possibleThrows = [0, 2, 4, 6, 8, -2, -4, -6];  // Valid throw values
+            const possibleThrows = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];  // Valid throw values
             const throwInputs = document.querySelectorAll('input[name*="throw_"]');
             
             throwInputs.forEach(input => {
-                const randomIndex = Math.floor(Math.random() * possibleThrows.length);
+                const randomIndex = Math.floor(Math.random() * 16);
+
                 input.value = possibleThrows[randomIndex];
             });
 
@@ -40,129 +35,123 @@
                 }
             });
         }
-    </script>
-    <style>
-        .game-score-sheet-table {
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        .game-score-sheet-table th,
-        .game-score-sheet-table td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .game-score-sheet-table input[type="text"] {
-            max-width: 50px;
 
+        function toggleForm() {
+            const desktopForm = document.querySelector('.desktop-form');
+            const mobileForm = document.querySelector('.mobile-form');
+            const toggleButton = document.querySelector('#toggleFormButton');
+            const formTypeInput = document.querySelector('input[name="form_type"]');
+
+            if (desktopForm.style.display === 'none') {
+                desktopForm.style.display = 'block';
+                mobileForm.style.display = 'none';
+                toggleButton.textContent = '{{ _("Switch to Mobile Form") }}';
+                formTypeInput.value = 'desktop';
+            } else {
+                desktopForm.style.display = 'none';
+                mobileForm.style.display = 'block';
+                toggleButton.textContent = '{{ _("Switch to Desktop Form") }}';
+                formTypeInput.value = 'mobile';
+            }
         }
-        .game-score-sheet-table select {
-            min-width: 150px;
+
+        function adjustMobileFormLayout(gameType, throwRoundAmount) {
+            const mobileForm = document.querySelector('.mobile-form');
+
+            if (!mobileForm) return;
+
+            // Adjust the form layout based on the game type
+            if (gameType === 'single') {
+                // Example: Single game type
+                mobileForm.classList.add('single-game-layout');
+                mobileForm.classList.remove('team-game-layout');
+            } else {
+                // Example: Team game type
+                mobileForm.classList.add('team-game-layout');
+                mobileForm.classList.remove('single-game-layout');
+            }
+
+            // Adjust the form layout based on the throw round amount
+            const roundHeaders = mobileForm.querySelectorAll('.round-header');
+            roundHeaders.forEach((header, index) => {
+                if (index < throwRoundAmount) {
+                    header.style.display = 'block';
+                } else {
+                    header.style.display = 'none';
+                }
+            });
         }
-        .form-actions {
-            margin: 20px 0;
-        }
-    </style>
+    </script>
 {% endblock %}
 
-{% block body %}
-<div class="container">
-    {% if model %}
-    <form method="post" action="{{ url_for('.edit_view', id=model.id) }}" enctype="multipart/form-data">
-    {% else %}
-    <form method="post" action="{{ url_for('.create_view') }}" enctype="multipart/form-data">
-    {% endif %}
-        {{ form.csrf_token }}
+{% block edit_form %}
+    <form action="" method="POST" role="form" class="admin-form form-horizontal" enctype="multipart/form-data">
+        {{ form.hidden_tag() if form.hidden_tag }}
+        <input type="hidden" name="form_type" value="desktop">
         
-        <!-- Add Auto-fill button at the top -->
+        <!-- Add Auto-fill and Toggle Form buttons at the top -->
         <div class="form-actions mb-3">
             <button type="button" class="btn btn-secondary" onclick="autoFillForm()">
                 {{ _('Auto-fill Test Data') }}
             </button>
+            <button type="button" class="btn btn-secondary" id="toggleFormButton" onclick="toggleForm()">
+                {{ _('Switch to Mobile Form') }}
+            </button>
         </div>
 
-        <table class="game-score-sheet-table">
-            <thead>
-                <tr>
-                    <th>{{ _('Round') }}</th>
-                    <th>{{ _('Team') }}</th>
-                    <th>{{ _('Player') }}</th>
-                    <th>{{ _('Throw 1') }}</th>
-                    <th>{{ _('Throw 2') }}</th>
-                    <th>{{ _('Throw 3') }}</th>
-                    <th>{{ _('Throw 4') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for round in [1, 2] %}
-                    {% if round == 1 %}
-                        {% for player_index in range(4) %}
-                            {# First team's turn #}
-                            {% set throw_form = form.team_1_round_throws.entries[0] %}
-                            {% set single_throw = throw_form['round_' ~ round].entries[player_index] %}
-                            <tr class="single-throw-form">
-                                <td>{{ round }}</td>
-                                <td>{{ _('Team 1') }}</td>
-                                <td>{{ single_throw.player_id }}</td>
-                                <td>{{ single_throw.throw_1 }}</td>
-                                <td>{{ single_throw.throw_2 }}</td>
-                                <td>{{ single_throw.throw_3 }}</td>
-                                <td>{{ single_throw.throw_4 }}</td>
-                            </tr>
-                        {% endfor %}
-                        {% for player_index in range(4) %}
-                            {# Second team's turn #}
-                            {% set throw_form = form.team_2_round_throws.entries[0] %}
-                            {% set single_throw = throw_form['round_' ~ round].entries[player_index] %}
-                            <tr class="single-throw-form">
-                                <td>{{ round }}</td>
-                                <td>{{ _('Team 2') }}</td>
-                                <td>{{ single_throw.player_id }}</td>
-                                <td>{{ single_throw.throw_1 }}</td>
-                                <td>{{ single_throw.throw_2 }}</td>
-                                <td>{{ single_throw.throw_3 }}</td>
-                                <td>{{ single_throw.throw_4 }}</td>
-                            </tr>
-                        {% endfor %}
-                    {% else %}
-                        {% for player_index in range(4) %}
-                            {# Second team's turn #}
-                            {% set throw_form = form.team_2_round_throws.entries[0] %}
-                            {% set single_throw = throw_form['round_' ~ round].entries[player_index] %}
-                            <tr class="single-throw-form">
-                                <td>{{ round }}</td>
-                                <td>{{ _('Team 2') }}</td>
-                                <td>{{ single_throw.player_id }}</td>
-                                <td>{{ single_throw.throw_1 }}</td>
-                                <td>{{ single_throw.throw_2 }}</td>
-                                <td>{{ single_throw.throw_3 }}</td>
-                                <td>{{ single_throw.throw_4 }}</td>
-                            </tr>
-                        {% endfor %}
-                        {% for player_index in range(4) %}
-                            {# First team's turn #}
-                            {% set throw_form = form.team_1_round_throws.entries[0] %}
-                            {% set single_throw = throw_form['round_' ~ round].entries[player_index] %}
-                            <tr class="single-throw-form">
-                                <td>{{ round }}</td>
-                                <td>{{ _('Team 1') }}</td>
-                                <td>{{ single_throw.player_id }}</td>
-                                <td>{{ single_throw.throw_1 }}</td>
-                                <td>{{ single_throw.throw_2 }}</td>
-                                <td>{{ single_throw.throw_3 }}</td>
-                                <td>{{ single_throw.throw_4 }}</td>
-                            </tr>
-                        {% endfor %}
-                    {% endif %}
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Include desktop form -->
+        {% include 'admin/partials/desktop_form.html' %}
+
+        <!-- Include mobile form -->
+        {% include 'admin/partials/mobile_form.html' %}
+
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
-            <a href="{{ url_for('.index_view') }}" class="btn btn-default">{{ _('Cancel') }}</a>
+            <input type="submit" class="btn btn-primary" value="{{ _('Save') }}" />
+            <a href="{{ return_url }}" class="btn btn-default">{{ _('Cancel') }}</a>
         </div>
     </form>
-</div>
+{% endblock %}
+
+{% block tail %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    // Log form submission
+                    console.log('Form submission started');
+                    const formData = new FormData(form);
+                    for (const [key, value] of formData.entries()) {
+                        console.log(`${key}: ${value}`);
+                    }
+                    // Don't prevent default - let the form submit normally
+                });
+            }
+
+            // Initialize form visibility
+            const desktopForm = document.querySelector('.desktop-form');
+            const mobileForm = document.querySelector('.mobile-form');
+            const toggleButton = document.querySelector('#toggleFormButton');
+            const formTypeInput = document.querySelector('input[name="form_type"]');
+
+            if (window.innerWidth <= 768) {
+                desktopForm.style.display = 'none';
+                mobileForm.style.display = 'block';
+                toggleButton.textContent = '{{ _("Switch to Desktop Form") }}';
+                formTypeInput.value = 'mobile';
+            } else {
+                desktopForm.style.display = 'block';
+                mobileForm.style.display = 'none';
+                toggleButton.textContent = '{{ _("Switch to Mobile Form") }}';
+                formTypeInput.value = 'desktop';
+            }
+
+            // Adjust mobile form layout based on the game type and throw round amount
+            adjustMobileFormLayout('{{ game_type }}', '{{ throw_round_amount }}');
+        });
+    </script>
+{% endblock %}
 
 <style>
     .single-throw-form {
@@ -174,8 +163,46 @@
     .game-score-sheet-table td {
         padding: 8px;
     }
+    .round-header {
+        background-color: #f0f0f0;
+        font-weight: bold;
+        text-align: center;
+    }
+    .round-score {
+        background-color: #e0e0e0;
+        font-weight: bold;
+        text-align: center;
+    }
+    .end-score {
+        background-color: #d0d0d0;
+        font-weight: bold;
+        text-align: center;
+    }
     input[type="number"] {
         width: 80px;
     }
+
+    /* Hide mobile form by default */
+    .mobile-form {
+        display: none;
+    }
+
+    /* Show mobile form and hide desktop form on small screens */
+    @media (max-width: 768px) {
+        .desktop-form {
+            display: none;
+        }
+        .mobile-form {
+            display: block;
+        }
+    }
+
+    /* Custom styles for different game types in mobile form */
+    .mobile-form.single-game-layout .single-throw-form {
+        /* Custom styles for single game layout */
+    }
+
+    .mobile-form.team-game-layout .single-throw-form {
+        /* Custom styles for team game layout */
+    }
 </style>
-{% endblock %}

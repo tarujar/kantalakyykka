@@ -1,8 +1,9 @@
 -- Throw result types
 CREATE TYPE throw_result AS ENUM (
-    'valid',       -- 2p per kyykkä (kyykät poistuvat neliöstä), 1p per kyykkä (kyykät jäävät laidalle aka pappi), 0 (osuma, mutta kyykät eivät siirry)
-    'hauki',       -- H (0p, ei osumaa kyykään, hauki)
-    'fault'        -- (0p, yliastuttu/hylätty heitto)
+    'VALID',       -- 2p per kyykkä (kyykät poistuvat neliöstä), 1p per kyykkä (kyykät jäävät laidalle aka pappi), 0 (osuma, mutta kyykät eivät siirry)
+    'HAUKI',       -- H (0p, ei osumaa kyykään, hauki)
+    'FAULT',       -- (0p, yliastuttu/hylätty heitto)
+    'E'            -- (Käyttämättä jäänyt heitto, 0 tai pelin lopussa 1p jos kenttä on tyhjä)
 );
 
 -- single(1), duo(2), quartet(4), team(4-8 players)
@@ -11,6 +12,7 @@ CREATE TABLE game_types (
     name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     max_players INTEGER NOT NULL CHECK (max_players > 0),
+    throw_round_amount INTEGER NOT NULL DEFAULT 4,
     UNIQUE (name),
     UNIQUE (max_players)
 );
@@ -112,8 +114,10 @@ CREATE TABLE single_throw (
     throw_score INTEGER NOT NULL,
     CONSTRAINT valid_throw_score CHECK (
         CASE 
-            WHEN throw_type = 'valid' THEN
+            WHEN throw_type = 'VALID' THEN
                 throw_score BETWEEN -80 AND 80
+            WHEN throw_type = 'E' THEN
+                throw_score = 1
             ELSE 
                 throw_score = 0 -- Hauki, hylätty aina 0p
         END
@@ -136,8 +140,7 @@ CREATE TABLE single_round_throws (
     throw_4 INTEGER REFERENCES single_throw(id),
     CONSTRAINT valid_throw_position CHECK (throw_position BETWEEN 1 AND 5),
     CONSTRAINT valid_game_set_index CHECK (game_set_index BETWEEN 1 AND 2),
-    UNIQUE (game_id, game_set_index, throw_position),
-    UNIQUE (game_id, game_set_index)
+    UNIQUE (game_id, game_set_index, throw_position, home_team)
 );
 
 -- Yksinkertaiset tarkistukset tietokannassa
@@ -204,5 +207,8 @@ CREATE TRIGGER validate_game_teams_trigger
 BEFORE INSERT OR UPDATE ON games
 FOR EACH ROW
 EXECUTE FUNCTION validate_game_teams();
+
+-- Rename round_amount column to throw_round_amount in game_types table
+ALTER TABLE game_types RENAME COLUMN round_amount TO throw_round_amount;
 
 

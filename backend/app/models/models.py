@@ -5,10 +5,11 @@ from datetime import datetime, timezone
 
 Base = declarative_base()
 
-class ThrowResult(enum.Enum):
-    VALID = "valid"
-    HAUKI = "hauki"
-    FAULT = "fault"
+class ThrowType(enum.Enum):
+    VALID = "VALID"
+    HAUKI = "HAUKI"
+    FAULT = "FAULT"
+    E = "E"
 
 class GameType(Base):
     __tablename__ = "game_types"
@@ -16,6 +17,7 @@ class GameType(Base):
     name = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
     max_players = Column(Integer, nullable=False)
+    throw_round_amount = Column(Integer, nullable=False, default=4)
     series = relationship("Series", back_populates="game_type")
 
 class Player(Base):
@@ -31,6 +33,7 @@ class Player(Base):
         back_populates='players',
         overlaps="team_rosters,roster_entries"
     )
+    throws = relationship("SingleRoundThrow", backref="player")
 
     def __repr__(self):
         return f'<Player {self.name}>'
@@ -56,6 +59,7 @@ class Series(Base):
     is_cup_league = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
     teams = relationship("TeamInSeries", back_populates="series")
+    games = relationship("Game", back_populates="series") 
 
 class TeamInSeries(Base):
     __tablename__ = "teams_in_series"
@@ -87,6 +91,7 @@ class Game(Base):
     __tablename__ = "games"
     id = Column(Integer, primary_key=True, index=True)
     series_id = Column(Integer, ForeignKey("series.id"), nullable=False)
+    series = relationship("Series", back_populates="games")
     round = Column(String)
     is_playoff = Column(Boolean, default=False)
     game_date = Column(Date, nullable=False)
@@ -104,7 +109,7 @@ class Game(Base):
 class SingleThrow(Base):
     __tablename__ = "single_throw"
     id = Column(Integer, primary_key=True, index=True)
-    throw_type = Column(Enum(ThrowResult), nullable=False)
+    throw_type = Column(Enum(ThrowType), nullable=False)
     throw_score = Column(Integer, nullable=False)
 
 class SingleRoundThrow(Base):

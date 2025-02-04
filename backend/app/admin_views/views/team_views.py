@@ -1,7 +1,7 @@
 from flask_babel import lazy_gettext as _
 from wtforms import StringField, SelectField
 from .base import CustomModelView
-from app.utils.choices import get_series_choices, get_player_choices
+from app.utils.choices import get_series_choices, get_player_choices_with_contact
 from app.utils.display import format_series_name, format_player_contact_info
 from flask import flash
 from app.utils.validation_messages import validate_team_form
@@ -39,7 +39,7 @@ class TeamInSeriesAdmin(CustomModelView):
     def create_form(self):
         form = super().create_form()
         series_choices, series_default = get_series_choices()
-        player_choices = get_player_choices()
+        player_choices = get_player_choices_with_contact()
         
         # Convert choices to strings for form processing
         form.series_id.choices = [(str(id), f"{name} ({year})") for id, name, year in series_choices]
@@ -54,7 +54,7 @@ class TeamInSeriesAdmin(CustomModelView):
     def edit_form(self, obj):
         form = super().edit_form(obj)
         series_choices, series_default = get_series_choices()
-        player_choices = get_player_choices()
+        player_choices = get_player_choices_with_contact()
         
         # Convert choices to strings for form processing
         form.series_id.choices = [(str(id), f"{name} ({year})") for id, name, year in series_choices]

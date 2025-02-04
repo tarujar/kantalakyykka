@@ -1,7 +1,7 @@
 from flask_babel import lazy_gettext as _
 from wtforms import SelectField
 from flask_admin.model.form import InlineFormAdmin
-from app.utils.choices import get_team_choices_with_player_count, get_player_choices
+from app.utils.choices import get_team_choices_with_player_count, get_player_choices_for_form
 from .base import CustomModelView
 from app.models import db, RosterPlayersInSeries
 
@@ -24,7 +24,7 @@ class RosterAdmin(CustomModelView):
         for _, team_list in get_team_choices_with_player_count():
             choices.extend([(str(id), name) for id, name in team_list])
         form.registration_id.choices = choices
-        form.player_id.choices = [(str(id), name) for id, name in get_player_choices()]
+        form.player_id.choices = [(str(id), name) for id, name in get_player_choices_for_form()]
         form.registration_id.coerce = str
         form.player_id.coerce = str
         return form
@@ -39,7 +39,7 @@ class RosterAdmin(CustomModelView):
         for _, team_list in get_team_choices_with_player_count():
             choices.extend([(str(id), name) for id, name in team_list])
         form.registration_id.choices = choices
-        form.player_id.choices = [(str(id), name) for id, name in get_player_choices()]
+        form.player_id.choices = [(str(id), name) for id, name in get_player_choices_for_form()]
         form.registration_id.coerce = str
         form.player_id.coerce = str
         if obj is not None:

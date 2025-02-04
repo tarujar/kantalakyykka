@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, Literal
 from datetime import date, datetime
 
-class ThrowResult(str, Enum):
+class ThrowInput(str, Enum):
     VALID = "valid"
     HAUKI = "hauki"
     FAULT = "fault"
@@ -105,22 +105,22 @@ class TeamHistory(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class SingleThrowCreate(BaseModel):
-    throw_type: ThrowResult
+    throw_type: ThrowInput
     throw_score: int
 
     @field_validator('throw_score')
     def validate_throw_score(cls, v, values):
 
         throw_type = values.get('throw_type')
-        if (throw_type == ThrowResult.VALID and not -80 <= v <= 80):
+        if (throw_type == ThrowInput.VALID and not -80 <= v <= 80):
             raise ValueError("Valid throw score must be between -80 and 80")
-        elif (throw_type != ThrowResult.VALID and v != 0):
+        elif (throw_type != ThrowInput.VALID and v != 0):
             raise ValueError("Non-valid throws must have score 0")
         return v
 
 class SingleThrow(BaseModel):
     id: int
-    throw_type: ThrowResult
+    throw_type: ThrowInput
     throw_score: int
 
     model_config = ConfigDict(from_attributes=True)

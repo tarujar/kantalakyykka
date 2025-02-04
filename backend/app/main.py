@@ -3,7 +3,7 @@ from flask_admin import Admin
 from flask_sqlalchemy import SQLAlchemy
 from flask_babel import Babel, lazy_gettext as _
 from dotenv import load_dotenv
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect  # Ensure CSRFProtect is imported
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -21,9 +21,6 @@ app.config.update(
 
 db = SQLAlchemy(app)
 babel = Babel()
-
-# Add CSRF protection
-csrf = CSRFProtect(app)
 
 def get_locale():
     # Force Finnish for testing
@@ -46,10 +43,10 @@ for log_file in log_files:
 file_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
 file_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-file_handler.setLevel(logging.INFO)
+file_handler.setLevel(logging.DEBUG)  # Set to debug level
 app.logger.addHandler(file_handler)
 
-app.logger.setLevel(logging.INFO)
+app.logger.setLevel(logging.DEBUG)  # Set to debug level
 app.logger.info('Application startup')
 
 
@@ -63,16 +60,29 @@ try:
     from app.utils import custom_gettext
     from app.admin_views.views.game_score_sheet_view import GameScoreSheetAdmin
 
-    admin = Admin(app, name=str(_('kyykka kanta hallinta')), template_mode='bootstrap4')
-    admin.add_view(UserAdmin(User, db.session, name=_('user')))
-    admin.add_view(PlayerAdmin(Player, db.session, name=_('player')))
-    admin.add_view(GameTypeAdmin(GameType, db.session, name=_('game_type')))
-    admin.add_view(SeriesAdmin(Series, db.session, name=_('series')))
-    admin.add_view(TeamInSeriesAdmin(TeamInSeries, db.session, name=_('team_in_series')))
-    admin.add_view(TeamHistoryAdmin(TeamHistory, db.session, name=_('team_history')))
-    admin.add_view(RosterAdmin(RosterPlayersInSeries, db.session, name=_('team_roster')))
-    admin.add_view(GameScoreSheetAdmin(Game, db.session, name=_('game_score_sheet')))
+    admin = Admin(
+        app, 
+        name=str(_('kyykka kanta hallinta')), 
+        template_mode='bootstrap4',
+        base_template='admin/base.html'  # Change this line
+    )
+    
+    admin.add_view(UserAdmin(User, db.session, name=_('user'), category='yleinen'))
+    admin.add_view(PlayerAdmin(Player, db.session, name=_('player'), category='tiimit'))
+    admin.add_view(RosterAdmin(RosterPlayersInSeries, db.session, name=_('team_roster'), category='tiimit'))
+    admin.add_view(TeamInSeriesAdmin(TeamInSeries, db.session, name=_('team_in_series'), category='sarjat'))
+    admin.add_view(TeamHistoryAdmin(TeamHistory, db.session, name=_('team_history'), category='tiimit'))
+    admin.add_view(GameTypeAdmin(GameType, db.session, name=_('game_type'), category='yleinen'))
+    admin.add_view(SeriesAdmin(Series, db.session, name=_('series'), category='sarjat'))
 
+    admin.add_view(GameAdmin(Game, db.session, name=_('game'), category='statsit'))
+    admin.add_view(GameScoreSheetAdmin(
+        Game, 
+        db.session, 
+        name=_('game_score_sheet'),
+        endpoint='game_score_sheet',  # Must match the endpoint in GameScoreSheetAdmin
+        url='/game-score-sheet'
+    ))
 
     @app.route('/')
     def index():

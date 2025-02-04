@@ -1,6 +1,7 @@
 from app.main import db, app
 from app.models.models import GameType, Series, Player, TeamInSeries, RosterPlayersInSeries
 from flask import current_app
+import logging
 
 def get_game_type_choices():
     with app.app_context():
@@ -16,7 +17,7 @@ def get_series_choices():
         default = choices[0][0] if choices else None
         return choices, default
 
-def get_player_choices():
+def get_player_choices_with_contact():
     """Returns a list of tuples containing (id, display_name, email) for all players"""
     with current_app.app_context():
         players = db.session.query(Player).all()
@@ -84,3 +85,25 @@ def get_team_choices_with_player_count():
 def get_team_choices_with_context():
     with current_app.app_context():
         return get_flat_team_choices()
+
+def get_team_players(team_id, session=None):
+    """Get list of players for a specific team
+    Args:
+        team_id: The ID of the team
+        session: Optional database session (uses db.session if not provided)
+    Returns:
+        List of tuples (player_id, player_name) for the team's roster
+    """
+    try:
+        if not session:
+            session = db.session
+        
+        with current_app.app_context():
+            players = session.query(Player)\
+                .join(RosterPlayersInSeries)\
+                .filter(RosterPlayersInSeries.registration_id == team_id)\
+                .all()
+            return [(str(p.id), p.name) for p in players]
+    except Exception as e:
+        logging.error(f"Error getting team players: {e}")
+        return []

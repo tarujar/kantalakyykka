@@ -213,3 +213,19 @@ msgstr "2 joukkue 1. erätulos"
 
 msgid "score_2_2"
 msgstr "2 joukkue 2. erätulos"
+
+msgid "round_1"
+msgstr "1. erä"
+
+msgid "round_2"
+msgstr "2. erä"
+
+msgid "round_1_score"
+msgstr "1. erätulos"
+
+msgid "round_2_score"
+msgstr "2. erätulos"
+
+msgid "end_score"
+msgstr "pelitulos"
+

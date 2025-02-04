@@ -3,7 +3,7 @@ from flask_babel import lazy_gettext as _
 from flask_admin.form import SecureForm
 from wtforms import StringField, PasswordField, IntegerField, SelectField
 from app.models.models import GameType
-from app.utils.choices import get_game_type_choices, get_series_choices, get_player_choices
+from app.utils.choices import get_game_type_choices, get_series_choices, get_player_choices_with_contact
 from app.utils.display import format_player_name, format_series_name, custom_gettext
 from sqlalchemy.exc import IntegrityError, DataError
 from flask import flash
@@ -164,7 +164,7 @@ class TeamInSeriesAdmin(CustomModelView):
     def create_form(self):
         form = super().create_form()
         series_choices, series_default = get_series_choices()
-        player_choices, player_default = get_player_choices()
+        player_choices, player_default = get_player_choices_with_contact()
         
         # Convert choices to integers for form processing
         form.series_id.choices = [(int(id), name) for id, name in series_choices]
@@ -175,7 +175,7 @@ class TeamInSeriesAdmin(CustomModelView):
     def edit_form(self, obj):
         form = super().edit_form(obj)
         series_choices, series_default = get_series_choices()
-        player_choices, player_default = get_player_choices()
+        player_choices, player_default = get_player_choices_with_contact()
         
         # Convert choices to integers for form processing
         form.series_id.choices = [(int(id), name) for id, name in series_choices]

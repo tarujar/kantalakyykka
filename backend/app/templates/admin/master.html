@@ -1,0 +1,185 @@
+{% extends 'admin/base.html' %}
+
+{% block head_css %}
+    {{ super() }}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        /* Base styles for tables */
+        .table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .table th,
+        .table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            min-width: 100px;
+            white-space: normal;
+        }
+
+        /* Table header improvements */
+        .table thead th {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        /* Form styles */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+        }
+
+        .form-actions {
+            margin: 20px 0;
+        }
+
+        /* List view action buttons */
+        .list-buttons-column .btn,
+        .list-buttons-column a {
+            font-size: 0.75rem;
+            min-width: 16px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .list-buttons-column .fa,
+        .list-buttons-column .fas,
+        .list-buttons-column .far {
+            font-size: 1rem;
+        }
+
+        /* Game score sheet specific styles */
+        .game-score-sheet-table input[type="text"] {
+            max-width: 50px;
+        }
+
+        .game-score-sheet-table select {
+            min-width: 150px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+        }
+
+        /* Mobile-friendly styles */
+        @media (max-width: 768px) {
+            /* Table responsiveness */
+            .model-list,
+            .game-score-sheet-table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            /* Touch-friendly inputs */
+            .btn, 
+            input[type="text"],
+            input[type="number"],
+            select {
+                padding: 1px;
+                height: auto;
+                min-height: 44px;
+                font-size: 16px;
+            }
+
+            /* Form layout */
+            .form-inline .form-control {
+                display: block;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            /* Mobile action buttons */
+            .list-buttons-column .btn,
+            .list-buttons-column a {
+                font-size: 1.2em;
+                margin: 5px;
+                min-width: 44px;
+            }
+
+            /* Mobile dropdowns */
+            .dropdown-menu {
+                min-width: 200px;
+            }
+            
+            .dropdown-item {
+                padding: 12px 20px;
+            }
+
+            /* Mobile navigation */
+            .navbar-nav {
+                padding: 10px;
+            }
+            
+            .nav-item {
+                margin: 5px 0;
+            }
+
+            /* Mobile form controls */
+            .filters {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .filter-row {
+                margin-bottom: 10px;
+            }
+
+            /* Game score sheet mobile adjustments */
+            .game-score-sheet-table th,
+            .game-score-sheet-table td {
+                min-width: 80px;
+                padding: 12px 8px;
+            }
+
+            .game-score-sheet-table input[type="text"],
+            .game-score-sheet-table input[type="number"] {
+                width: 60px;
+            }
+
+            .game-score-sheet-table select {
+                max-width: 200px;
+                width: 100%;
+            }
+
+            .form-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .form-actions .btn {
+                width: 100%;
+                padding: 12px;
+                margin: 0;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add touch-friendly hover states
+            document.querySelectorAll('.btn, .nav-link').forEach(function(element) {
+                element.addEventListener('touchstart', function() {
+                    this.style.opacity = '0.7';
+                });
+                element.addEventListener('touchend', function() {
+                    this.style.opacity = '1';
+                });
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,98 @@
+<div class="desktop-form">
+    <table class="game-score-sheet-table">
+        <thead>
+            <tr>
+                <th>{{ _('Team') }}</th>
+                <th>{{ _('Player') }}</th>
+                <th>{{ _('Throw 1') }}</th>
+                <th>{{ _('Throw 2') }}</th>
+                <th>{{ _('Throw 3') }}</th>
+                <th>{{ _('Throw 4') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Round 1 -->
+            <tr class="round-header">
+                <td colspan="6">{{ _('Round 1') }}</td>
+            </tr>
+            {% for player_index in range(4) %}
+                {# First team's turn #}
+                {% set throw_form = form.team_1_round_throws.entries[0] %}
+                {% set single_throw = throw_form['round_1'].entries[player_index] %}
+                <tr class="single-throw-form">
+                    <td>{{ _('1. ') }}</td>
+                    <td>{{ single_throw.player_id }}</td>
+                    <td>{{ single_throw.throw_1 }}</td>
+                    <td>{{ single_throw.throw_2 }}</td>
+                    <td>{{ single_throw.throw_3 }}</td>
+                    <td>{{ single_throw.throw_4 }}</td>
+                </tr>
+            {% endfor %}
+            {% for player_index in range(4) %}
+                {# Second team's turn #}
+                {% set throw_form = form.team_2_round_throws.entries[0] %}
+                {% set single_throw = throw_form['round_1'].entries[player_index] %}
+                <tr class="single-throw-form">
+                    <td>{{ _('2. ') }}</td>
+                    <td>{{ single_throw.player_id }}</td>
+                    <td>{{ single_throw.throw_1 }}</td>
+                    <td>{{ single_throw.throw_2 }}</td>
+                    <td>{{ single_throw.throw_3 }}</td>
+                    <td>{{ single_throw.throw_4 }}</td>
+                </tr>
+            {% endfor %}
+
+            <!-- Display round 1 scores -->
+            <tr class="round-score">
+                <td colspan="2">{{ _('Round 1 Scores') }}</td>
+                <td colspan="2">{{ form.score_1_1.data }}</td>
+                <td colspan="2">{{ form.score_2_1.data }}</td>
+            </tr>
+
+            <!-- Round 2 -->
+            <tr class="round-header">
+                <td colspan="6">{{ _('Round 2') }}</td>
+            </tr>
+            {% for player_index in range(4) %}
+                {# Second team's turn #}
+                {% set throw_form = form.team_2_round_throws.entries[0] %}
+                {% set single_throw = throw_form['round_2'].entries[player_index] %}
+                <tr class="single-throw-form">
+                    <td>{{ _('2. ') }}</td>
+                    <td>{{ single_throw.player_id }}</td>
+                    <td>{{ single_throw.throw_1 }}</td>
+                    <td>{{ single_throw.throw_2 }}</td>
+                    <td>{{ single_throw.throw_3 }}</td>
+                    <td>{{ single_throw.throw_4 }}</td>
+                </tr>
+            {% endfor %}
+            {% for player_index in range(4) %}
+                {# First team's turn #}
+                {% set throw_form = form.team_1_round_throws.entries[0] %}
+                {% set single_throw = throw_form['round_2'].entries[player_index] %}
+                <tr class="single-throw-form">
+                    <td>{{ _('1. ') }}</td>
+                    <td>{{ single_throw.player_id }}</td>
+                    <td>{{ single_throw.throw_1 }}</td>
+                    <td>{{ single_throw.throw_2 }}</td>
+                    <td>{{ single_throw.throw_3 }}</td>
+                    <td>{{ single_throw.throw_4 }}</td>
+                </tr>
+            {% endfor %}
+
+            <!-- Display round 2 scores -->
+            <tr class="round-score">
+                <td colspan="2">{{ _('Round 2 Scores') }}</td>
+                <td colspan="2">{{ form.score_1_2.data }}</td>
+                <td colspan="2">{{ form.score_2_2.data }}</td>
+            </tr>
+
+            <!-- Display end scores -->
+            <tr class="end-score">
+                <td colspan="2">{{ _('End Scores') }}</td>
+                <td colspan="2">{{ form.end_score_team_1.data }}</td>
+                <td colspan="2">{{ form.end_score_team_2.data }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

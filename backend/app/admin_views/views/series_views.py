@@ -1,10 +1,10 @@
 from flask_babel import lazy_gettext as _
-from wtforms import  IntegerField, SelectField
+from wtforms import IntegerField, SelectField, StringField, BooleanField
+from flask_admin.contrib.sqla import ModelView
 from app.utils.choices import get_game_type_choices
-from .base import CustomModelView
+from app.models.models import Series
 
-
-class SeriesAdmin(CustomModelView):
+class SeriesAdmin(ModelView):
     form_columns = ['name', 'season_type', 'year', 'status', 'registration_open', 'game_type_id', 'is_cup_league']
 
     form_overrides = {
@@ -16,14 +16,14 @@ class SeriesAdmin(CustomModelView):
         form = super().create_form()
         choices, default = get_game_type_choices()
         form.game_type_id.choices = choices
-        form.game_type_id.coerce = int  # Add this line to ensure proper type conversion
+        form.game_type_id.coerce = int  # Ensure proper type conversion
         return form
 
     def edit_form(self, obj):
         form = super().edit_form(obj)
         choices, default = get_game_type_choices()
         form.game_type_id.choices = choices
-        form.game_type_id.coerce = int  # Add this line to ensure proper type conversion
+        form.game_type_id.coerce = int  # Ensure proper type conversion
         return form
 
     def _game_type_formatter(view, context, model, name):
@@ -50,4 +50,6 @@ class SeriesAdmin(CustomModelView):
         }
     }
     form_labels = column_labels
+    column_list = ['name', 'season_type', 'game_type', 'year', 'status', 'registration_open','is_cup_league']
+
 

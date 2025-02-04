@@ -1,66 +1,84 @@
 from flask_babel import lazy_gettext as _
-from wtforms import SelectField, IntegerField, BooleanField, FormField, FieldList
+from wtforms import SelectField, IntegerField, BooleanField, StringField, DateField
 from .base import CustomModelView
 from app.utils.choices import get_series_choices, get_team_choices_by_series
-from flask import current_app
+from flask import redirect, url_for, request
 from app.utils.display import format_team_name, format_series_name, format_end_game_score
-from flask_admin.form import BaseForm
-from flask_admin.model.form import InlineFormAdmin
-from app.models.models import SingleRoundThrow
+import logging
 
 class GameTypeAdmin(CustomModelView):
     form_overrides = {
-        'max_players': IntegerField
+        'max_players': IntegerField,
+        'throw_round_amount': IntegerField 
     }
     column_labels = {
         'name': _('game_type'),
         'max_players': _('max_players'),
+        'throw_round_amount': _('throw_round_amount'),
         'created_at': _('created_at')
     }
     form_labels = column_labels
-    form_columns = ['name', 'max_players', 'created_at']
-
+    form_columns = ['name', 'max_players', 'throw_round_amount', 'created_at'] 
 
 class GameAdmin(CustomModelView):
-    def set_team_choices(self, form):
-        series_choices, series_default = get_series_choices()
+    list_template = 'admin/game_form.html'
+    
+    # Add list row action permissions
+    can_view_details = True
+    can_edit = True
+    can_delete = True
+
+    def create_form(self, obj=None):
+        form = super().create_form(obj)
+        series_choices, _ = get_series_choices()
         team_choices = get_team_choices_by_series()
         
-        # Convert choices to strings for form processing
+        # Set choices for series
         form.series_id.choices = [(str(id), f"{name} ({year})") for id, name, year in series_choices]
         
-        def set_choices(field, choices):
-            field.choices = []
-            for series_name, teams in choices:
-                field.choices.extend([(str(id), f"{name} ({series_name})") for id, name in teams])
+        # Set choices for teams
+        team_list = []
+        for series_name, teams in team_choices:
+            team_list.extend([(str(id), f"{name} ({series_name})") for id, name in teams])
         
-        set_choices(form.team_1_id, team_choices)
-        set_choices(form.team_2_id, team_choices)
-
-    def create_form(self):
-        form = super().create_form()
-        self.set_team_choices(form)
+        form.team_1_id.choices = team_list
+        form.team_2_id.choices = team_list
+        
         return form
 
     def edit_form(self, obj):
         form = super().edit_form(obj)
-        self.set_team_choices(form)
+        series_choices, _ = get_series_choices()
+        team_choices = get_team_choices_by_series()
+        
+        # Set choices for series
+        form.series_id.choices = [(str(id), f"{name} ({year})") for id, name, year in series_choices]
+        
+        # Set choices for teams
+        team_list = []
+        for series_name, teams in team_choices:
+            team_list.extend([(str(id), f"{name} ({series_name})") for id, name in teams])
+        
+        form.team_1_id.choices = team_list
+        form.team_2_id.choices = team_list
+        
         return form
+
+    def on_model_change(self, form, model, is_created):
+        try:
+            result = super().on_model_change(form, model, is_created)
+            if is_created and 'next_step' in request.form:
+                return redirect(url_for('gamescoresheetadmin.edit_view', id=model.id))
+            return result
+        except Exception as e:
+            logging.error(f"Error in on_model_change: {e}")
+            raise
 
     def __init__(self, model, session, **kwargs):
         self.form_extra_fields = {
-            'series_id': SelectField(
-                'series',
-                coerce=str
-            ),
-            'team_1_id': SelectField(
-                'team_1',
-                coerce=str
-            ),
-            'team_2_id': SelectField(
-                'team_2',
-                coerce=str
-            )
+            'series_id': SelectField('series', coerce=str),
+            'team_1_id': SelectField('team_1', coerce=str),
+            'team_2_id': SelectField('team_2', coerce=str)
         }
         super().__init__(model, session, **kwargs)
 
@@ -93,7 +111,6 @@ class GameAdmin(CustomModelView):
     form_labels = column_labels
     form_columns = ['series_id', 'round', 'is_playoff', 'game_date', 'team_1_id', 'team_2_id', 'score_1_1', 'score_1_2', 'score_2_1', 'score_2_2']
     column_list = form_columns + ['end_game_score','created_at']
-
 
 class SingleThrowAdmin(CustomModelView):
     column_labels = {
