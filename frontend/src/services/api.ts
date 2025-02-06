@@ -1,4 +1,4 @@
-import axios from 'axios';
+/*import axios from 'axios';
 import { Game, GameCreate, GameType, GameTypeCreate, Player, PlayerCreate, Series, SeriesCreate, TeamInSeries } from '../types';
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
@@ -88,3 +88,4 @@ export const updateGameType = async (gameTypeId: number, gameType: GameTypeCreat
 export const deleteGameType = async (gameTypeId: number): Promise<void> => {
   await axios.delete(`${API_BASE_URL}/game_types/${gameTypeId}`);
 };
+*/

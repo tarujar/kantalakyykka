@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { validateThrow } from '../../utils/validationUtils';
-import { GameType } from 'types';
+import { GameType } from 'openapi';
 
 interface Props {
   throwNumber: number;

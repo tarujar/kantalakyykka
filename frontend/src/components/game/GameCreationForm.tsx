@@ -17,7 +17,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { TeamSelector } from './TeamSelector';
-import { Game, GameType, TeamInSeries } from 'types';
+import { Game, GameType, TeamInSeries } from 'openapi';
 
 interface Props {
   onSubmit: (game: Game) => void;

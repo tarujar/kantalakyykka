@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from '../../hooks/useTranslation';
-import { GameType, Player, TeamInSeries } from 'types';
+import { Player, TeamInSeries } from 'openapi';
 
 interface Props {
   maxPlayers: number;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThrowInput } from './ThrowInput';
 import { useTranslation } from '../../hooks/useTranslation';
-import { GameType } from 'types';
+import { GameType } from 'openapi';
 
 interface Props {
   player: any;

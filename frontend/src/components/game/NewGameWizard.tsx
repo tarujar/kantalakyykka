@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import GameResultForm from './GameResultForm';
-import { Series, TeamInSeries as Team } from 'types';
+import { Series, TeamInSeries as Team } from 'openapi';
 
 interface Props {
   onGameCreated: (gameId: number) => void;

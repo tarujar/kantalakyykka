@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
-import { Game } from 'types';
+import { Game } from 'openapi';
 
 /**
  * GameForm vastaa pelin tulosten syöttämisestä.

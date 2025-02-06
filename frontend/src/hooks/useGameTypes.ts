@@ -1,6 +1,5 @@
+import { GameType, listGameTypesApiV1GameTypesGet } from 'openapi';
 import { useState, useEffect } from 'react';
-import { GameTypesService } from '../types/services/GameTypesService';
-import { GameType } from 'types';
 
 const useGameTypes = () => {
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
@@ -8,8 +7,9 @@ const useGameTypes = () => {
   useEffect(() => {
     const fetchGameTypes = async () => {
       try {
-        const response = await GameTypesService.listGameTypesApiV1GameTypesGet();
-        if (response) setGameTypes(response);
+        const response = await listGameTypesApiV1GameTypesGet();
+        console.log('Game types:', response.data);
+        if (response.data) setGameTypes(response.data);
       } catch (error) {
         console.error('Error fetching game types:', error);
       }

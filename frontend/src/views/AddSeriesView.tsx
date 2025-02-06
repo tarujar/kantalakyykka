@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SeriesService } from '../types/services/SeriesService';
+
 import useGameTypes from '../hooks/useGameTypes';
-import { SeriesCreate } from 'types';
+import { createSeriesApiV1SeriesPost, SeriesCreate } from 'openapi';
 
 const AddSeriesView: React.FC = () => {
   const [form, setForm] = useState<SeriesCreate>({
     name: '',
-    season_type: SeriesCreate.season_type.SUMMER,
+    season_type: "summer",
     year: new Date().getFullYear(),
     status: 'upcoming',
     registration_open: false,
@@ -28,7 +28,7 @@ const AddSeriesView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await SeriesService.createSeriesApiV1SeriesPost(form);
+      await createSeriesApiV1SeriesPost({body: form});
       alert('Series added successfully!');
       navigate('/series');
     } catch (error) {

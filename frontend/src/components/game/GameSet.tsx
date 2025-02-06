@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PlayerRow } from './PlayerRow';
 import { useTranslation } from '../../hooks/useTranslation';
-import { Game } from 'types';
+import { Game } from 'openapi';
 
 interface Props {
   setNumber: number;

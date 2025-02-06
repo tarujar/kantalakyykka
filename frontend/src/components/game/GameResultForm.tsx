@@ -1,5 +1,5 @@
 import React from 'react';
-import { Series, TeamInSeries } from 'types';
+import { Series, TeamInSeries } from 'openapi';
 
 interface Props {
   series: Series;
