@@ -1,168 +1,85 @@
 from fastapi import HTTPException
-from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session
-from ..models.models import Game as GameModel, GameType as GameTypeModel
+from ..models.models import Game as GameModel, GameType as GameTypeModel, SingleRoundThrow
 from ..models.schemas import GameCreate, Game
-
 import logging
-from app.models.models import ThrowType, Game, SingleRoundThrow, SingleThrow
-from sqlalchemy.orm import Session
-from app.utils.throw_input import convert_throw_type_to_str
+from app.services.throw_service import ThrowService
 
 class GameService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
-
-    def save_throw(self, session: Session, throw_form_field, existing_throw_id=None) -> int:
-        """Save a single throw and return its ID
-        Args:
-            session: SQLAlchemy session
-            throw_form_field: ThrowInputField instance with throw_type and throw_score
-            existing_throw_id: ID of the existing throw to update, if any
-        Returns:
-            int: ID of created or updated SingleThrow record or None if no throw
-        """
-        if not throw_form_field or not hasattr(throw_form_field, 'data'):
-            self.logger.debug(f"Throw form field is missing or invalid {throw_form_field.__dict__}" )
-            return None
-        self.logger.debug(f"SAVETHROW exist: {existing_throw_id}, {throw_form_field.throw_type}, {throw_form_field.throw_score}" )
-    
-        if throw_form_field.throw_type in [ThrowType.HAUKI.value, ThrowType.FAULT.value, ThrowType.VALID.value, ThrowType.E.value]:
-
-            if existing_throw_id:
-                throw = session.query(SingleThrow).get(existing_throw_id)
-                if throw:
-                    throw.throw_type = convert_throw_type_to_str(throw_form_field.throw_type)
-                    throw.throw_score = throw_form_field.throw_score
-                    self.logger.debug(f"Updated throw: {throw.__dict__}")
-                else:
-                    self.logger.warning(f"Existing throw with ID {existing_throw_id} not found")
-                    throw = SingleThrow(
-                        throw_type=convert_throw_type_to_str(throw_form_field.throw_type),
-                        throw_score=throw_form_field.throw_score
-                    )
-                    session.add(throw)
-                    session.flush()  # Get the ID without committing
-                    self.logger.debug(f"Saved new throw: {throw.__dict__}")
-            else:
-                throw = SingleThrow(
-                    throw_type=convert_throw_type_to_str(throw_form_field.throw_type),
-                    throw_score=throw_form_field.throw_score
-                )
-                session.add(throw)
-                session.flush()  # Get the ID without committing
-                self.logger.debug(f"Saved new throw: {throw.__dict__}")
-
-            return throw.id
-        else:
-            self.logger.debug(f"Invalid throw form field data: {throw_form_field}")
-            return None
+        self.throw_service = ThrowService()
 
     def process_game_throws(self, game_id, form, session):
         """Process throws for a game"""
+        self.logger.debug(f"Processing throws for game {game_id}")
+
+        # Initial rollback to ensure clean state
+        session.rollback()
+        
         try:
-            # Start fresh - rollback any existing transaction
-            session.rollback()
-            
-            # Get existing throws
+            # Get existing throws for mapping
             existing_throws = session.query(SingleRoundThrow).filter_by(game_id=game_id).all()
             existing_throws_map = {(t.game_set_index, t.throw_position, t.home_team): t for t in existing_throws}
             
-            # Process new throws
+            # Process throws for each team
             for team_index, team_throws in enumerate([form.team_1_round_throws, form.team_2_round_throws]):
                 is_home_team = team_index == 0
-                team_name = "Team 1" if is_home_team else "Team 2"
-                self.logger.debug(f"Processing throws for {team_name}")
-                
                 for entry in team_throws:
                     for round_num in [1, 2]:
-                        round_data = getattr(entry, f'round_{round_num}')
-                        for pos, throw_form in enumerate(round_data, 1):
-                            self.logger.debug(f"Throw {round_num} {throw_form.__dict__}")
-                            
-                            # Check if this throw already exists
-                            existing_throw = existing_throws_map.get((round_num, pos, is_home_team))
-                            
-                            # Save each throw and get its ID
-                            throw_1_id = self.save_throw(session, throw_form.throw_1, existing_throw.throw_1 if existing_throw else None)
-                            throw_2_id = self.save_throw(session, throw_form.throw_2, existing_throw.throw_2 if existing_throw else None)
-                            throw_3_id = self.save_throw(session, throw_form.throw_3, existing_throw.throw_3 if existing_throw else None)
-                            throw_4_id = self.save_throw(session, throw_form.throw_4, existing_throw.throw_4 if existing_throw else None)
-                            session.flush()  # Ensure throw IDs are available
-                            
-                            player_id = throw_form.player_id.data  # Extract the player_id value
-
-                            if existing_throw:
-                                # Update existing throw
-                                existing_throw.player_id = player_id
-                                existing_throw.throw_1 = throw_1_id
-                                existing_throw.throw_2 = throw_2_id
-                                existing_throw.throw_3 = throw_3_id
-                                existing_throw.throw_4 = throw_4_id
-                                self.logger.debug(f"Updated existing throw: {existing_throw.__dict__}")
-                            else:
-                                # Create new throw
-                                throw = SingleRoundThrow(
-                                    game_id=game_id,
-                                    game_set_index=round_num,
-                                    throw_position=pos,
-                                    home_team=is_home_team,
-                                    player_id=player_id,
-                                    throw_1=throw_1_id,
-                                    throw_2=throw_2_id,
-                                    throw_3=throw_3_id,
-                                    throw_4=throw_4_id
-                                )
-                                session.add(throw)
-                                session.flush()
-                                self.logger.debug(f"New throw saved with ID: {throw.id}")
+                        self._process_round_throws(session, game_id, entry, round_num, is_home_team, existing_throws_map)
             
-            # Commit all changes
+            # Try to commit all changes
             session.commit()
             self.logger.info("Successfully saved all throws")
             return True
             
         except Exception as e:
+            # Error rollback
             self.logger.error(f"Error processing throws: {e}", exc_info=True)
             session.rollback()
             raise
 
-    def get_throws_by_type(self, session: Session, throw_type: ThrowType):
-        """Get all throws of a specific type"""
-        return session.query(SingleThrow).filter(SingleThrow.throw_type == throw_type.value).all()
+    def _process_round_throws(self, session, game_id, entry, round_num, is_home_team, existing_throws_map):
+        """Process throws for a single round"""
+        round_data = getattr(entry, f'round_{round_num}')
+        for pos, throw_form in enumerate(round_data, 1):
+            existing_throw = existing_throws_map.get((round_num, pos, is_home_team))
+            self.throw_service.save_round_throw(
+                session,
+                game_id=game_id,
+                round_num=round_num,
+                position=pos,
+                is_home_team=is_home_team,
+                player_id=throw_form.player_id.data,
+                throws=[
+                    throw_form.throw_1.data,
+                    throw_form.throw_2.data,
+                    throw_form.throw_3.data,
+                    throw_form.throw_4.data
+                ],
+                existing_throw=existing_throw
+            )
 
-async def calculate_game_score(team_score: int, points_multiplier: int) -> int:
-    if points_multiplier not in [1, 2]:
-        raise ValueError("Invalid season")
-    return team_score * points_multiplier 
-
-def calculate_throw_points(throw_input: str) -> tuple[int, str | None]:
-    """Laskee heiton pisteet ja tyypin syötteen perusteella.
+async def calculate_game_score(team_score: int, points_multiplier: int = 1) -> int:
+    """Calculate game score with multiplier.
     
-    Sallitut syötteet:
-    - Numero väliltä -8..80: suora pistemäärä
-    - H: hauki (ei osumaa, 0 pistettä)
-    - -: hylätty (0 pistettä)
-    - U: käyttämätön (0 pistettä)
+    Args:
+        team_score: The raw score for the team
+        points_multiplier: Score multiplier (1 for regular season, 2 for playoffs)
+    
+    Returns:
+        int: Calculated score
+        
+    Raises:
+        ValueError: If points_multiplier is not 1 or 2
     """
-    match throw_input:
-        case 'H':
-            return (0, 'H')      # Ei osumaa
-        case '-':
-            return (0, '-')      # Hylätty
-        case 'U':
-            return (0, 'U')      # Käyttämätön
-        case _:
-            try:
-                points = int(throw_input)
-                if -8 <= points <= 80:  # Sallittu pistemäärä
-                    return (points, None)
-                raise ValueError("Points must be between -8 and 80")
-            except ValueError:
-                raise ValueError(f"Invalid throw input: {throw_input}")
+    if points_multiplier not in [1, 2]:
+        raise ValueError("Points multiplier must be 1 (regular season) or 2 (playoffs)")
+    return team_score * points_multiplier
 
 async def create_game(db: AsyncSession, game: GameCreate) -> Game:
     await validate_game_players(db, game.game_type_id, game.players)

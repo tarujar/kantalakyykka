@@ -21,8 +21,7 @@
             const throwInputs = document.querySelectorAll('input[name*="throw_"]');
             
             throwInputs.forEach(input => {
-                const randomIndex = Math.floor(Math.random() * 16);
-
+                const randomIndex = Math.floor(Math.random() * possibleThrows.length);
                 input.value = possibleThrows[randomIndex];
             });
 
@@ -80,6 +79,15 @@
                     header.style.display = 'none';
                 }
             });
+
+            const singleThrowForms = mobileForm.querySelectorAll('.single-throw-form');
+            singleThrowForms.forEach((form, index) => {
+                if (index < throwRoundAmount * 8) {
+                    form.style.display = 'block';
+                } else {
+                    form.style.display = 'none';
+                }
+            });
         }
     </script>
 {% endblock %}
@@ -90,7 +98,7 @@
         <input type="hidden" name="form_type" value="desktop">
         
         <!-- Add Auto-fill and Toggle Form buttons at the top -->
-        <div class="form-actions mb-3">
+        <div class="form-actions mb-3"></div>
             <button type="button" class="btn btn-secondary" onclick="autoFillForm()">
                 {{ _('Auto-fill Test Data') }}
             </button>
@@ -180,29 +188,5 @@
     }
     input[type="number"] {
         width: 80px;
-    }
-
-    /* Hide mobile form by default */
-    .mobile-form {
-        display: none;
-    }
-
-    /* Show mobile form and hide desktop form on small screens */
-    @media (max-width: 768px) {
-        .desktop-form {
-            display: none;
-        }
-        .mobile-form {
-            display: block;
-        }
-    }
-
-    /* Custom styles for different game types in mobile form */
-    .mobile-form.single-game-layout .single-throw-form {
-        /* Custom styles for single game layout */
-    }
-
-    .mobile-form.team-game-layout .single-throw-form {
-        /* Custom styles for team game layout */
     }
 </style>

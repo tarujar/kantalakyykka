@@ -3,7 +3,6 @@ from flask_admin import Admin
 from flask_sqlalchemy import SQLAlchemy
 from flask_babel import Babel, lazy_gettext as _
 from dotenv import load_dotenv
-from flask_wtf.csrf import CSRFProtect  # Ensure CSRFProtect is imported
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -54,8 +53,7 @@ try:
     from app.models.models import User, Player, GameType, Series, TeamInSeries, TeamHistory, Game, SingleThrow, SingleRoundThrow, RosterPlayersInSeries
     from app.admin_views import (
         UserAdmin, PlayerAdmin, GameTypeAdmin, SeriesAdmin, 
-        TeamInSeriesAdmin, TeamHistoryAdmin, GameAdmin, 
-        SingleThrowAdmin, SingleRoundThrowAdmin, RosterAdmin
+        TeamInSeriesAdmin, TeamHistoryAdmin, GameAdmin, RosterAdmin
     )
     from app.utils import custom_gettext
     from app.admin_views.views.game_score_sheet_view import GameScoreSheetAdmin
@@ -64,7 +62,7 @@ try:
         app, 
         name=str(_('kyykka kanta hallinta')), 
         template_mode='bootstrap4',
-        base_template='admin/base.html'  # Change this line
+        base_template='admin/base.html'
     )
     
     admin.add_view(UserAdmin(User, db.session, name=_('user'), category='yleinen'))
@@ -75,13 +73,13 @@ try:
     admin.add_view(GameTypeAdmin(GameType, db.session, name=_('game_type'), category='yleinen'))
     admin.add_view(SeriesAdmin(Series, db.session, name=_('series'), category='sarjat'))
 
-    admin.add_view(GameAdmin(Game, db.session, name=_('game'), category='statsit'))
+    admin.add_view(GameAdmin(Game, db.session, name=_('game') ))
     admin.add_view(GameScoreSheetAdmin(
         Game, 
         db.session, 
         name=_('game_score_sheet'),
         endpoint='game_score_sheet',  # Must match the endpoint in GameScoreSheetAdmin
-        url='/game-score-sheet'
+        url='/game-score-sheet', category=_('statsit')
     ))
 
     @app.route('/')

@@ -1,70 +1,74 @@
 <div class="mobile-form">
     <div class="round-header">{{ _('Round 1') }}</div>
-    {% for player_index in range(4) %}
-        {# First team's turn #}
-        {% set throw_form = form.team_1_round_throws.entries[0] %}
-        {% set single_throw = throw_form['round_1'].entries[player_index] %}
-        <div class="single-throw-form">
-            <div>{{ _('1. ') }}</div>
-            <div>{{ single_throw.player_id }}</div>
-            <div>{{ single_throw.throw_1 }}</div>
-            <div>{{ single_throw.throw_2 }}</div>
-            <div>{{ single_throw.throw_3 }}</div>
-            <div>{{ single_throw.throw_4 }}</div>
-        </div>
-    {% endfor %}
-    {% for player_index in range(4) %}
-        {# Second team's turn #}
-        {% set throw_form = form.team_2_round_throws.entries[0] %}
-        {% set single_throw = throw_form['round_1'].entries[player_index] %}
-        <div class="single-throw-form">
-            <div>{{ _('2. ') }}</div>
-            <div>{{ single_throw.player_id }}</div>
-            <div>{{ single_throw.throw_1 }}</div>
-            <div>{{ single_throw.throw_2 }}</div>
-            <div>{{ single_throw.throw_3 }}</div>
-            <div>{{ single_throw.throw_4 }}</div>
-        </div>
+    {% for throw_round in range(form.team_1_round_throws.entries[0].round_1.entries|length) %}
+        {% for player_index in range(4) %}
+            {# First team's turn #}
+            {% set throw_form = form.team_1_round_throws.entries[0] %}
+            {% set single_throw = throw_form['round_1'].entries[throw_round] %}
+            <div class="single-throw-form">
+                <div>{{ _('1. ') }}</div>
+                <div>{{ single_throw.player_id }}</div>
+                <div>{{ single_throw.throw_1 }}</div>
+                <div>{{ single_throw.throw_2 }}</div>
+                <div>{{ single_throw.throw_3 }}</div>
+                <div>{{ single_throw.throw_4 }}</div>
+            </div>
+        {% endfor %}
+        {% for player_index in range(4) %}
+            {# Second team's turn #}
+            {% set throw_form = form.team_2_round_throws.entries[0] %}
+            {% set single_throw = throw_form['round_1'].entries[throw_round] %}
+            <div class="single-throw-form">
+                <div>{{ _('2. ') }}</div>
+                <div>{{ single_throw.player_id }}</div>
+                <div>{{ single_throw.throw_1 }}</div>
+                <div>{{ single_throw.throw_2 }}</div>
+                <div>{{ single_throw.throw_3 }}</div>
+                <div>{{ single_throw.throw_4 }}</div>
+            </div>
+        {% endfor %}
     {% endfor %}
 
     <div class="round-score">
         <div>{{ _('Round 1 Scores') }}</div>
-        <div>{{ form.score_1_1.data }}</div>
-        <div>{{ form.score_2_1.data }}</div>
+        <div>{{ form.score_1_1 }}</div>
+        <div>{{ form.score_2_1 }}</div>
     </div>
 
     <div class="round-header">{{ _('Round 2') }}</div>
-    {% for player_index in range(4) %}
-        {# Second team's turn #}
-        {% set throw_form = form.team_2_round_throws.entries[0] %}
-        {% set single_throw = throw_form['round_2'].entries[player_index] %}
-        <div class="single-throw-form">
-            <div>{{ _('2. ') }}</div>
-            <div>{{ single_throw.player_id }}</div>
-            <div>{{ single_throw.throw_1 }}</div>
-            <div>{{ single_throw.throw_2 }}</div>
-            <div>{{ single_throw.throw_3 }}</div>
-            <div>{{ single_throw.throw_4 }}</div>
-        </div>
-    {% endfor %}
-    {% for player_index in range(4) %}
-        {# First team's turn #}
-        {% set throw_form = form.team_1_round_throws.entries[0] %}
-        {% set single_throw = throw_form['round_2'].entries[player_index] %}
-        <div class="single-throw-form">
-            <div>{{ _('1. ') }}</div>
-            <div>{{ single_throw.player_id }}</div>
-            <div>{{ single_throw.throw_1 }}</div>
-            <div>{{ single_throw.throw_2 }}</div>
-            <div>{{ single_throw.throw_3 }}</div>
-            <div>{{ single_throw.throw_4 }}</div>
-        </div>
+    {% for throw_round in range(form.team_1_round_throws.entries[0].round_2.entries|length) %}
+        {% for player_index in range(4) %}
+            {# First team's turn #}
+            {% set throw_form = form.team_1_round_throws.entries[0] %}
+            {% set single_throw = throw_form['round_2'].entries[throw_round] %}
+            <div class="single-throw-form">
+                <div>{{ _('1. ') }}</div>
+                <div>{{ single_throw.player_id }}</div>
+                <div>{{ single_throw.throw_1 }}</div>
+                <div>{{ single_throw.throw_2 }}</div>
+                <div>{{ single_throw.throw_3 }}</div>
+                <div>{{ single_throw.throw_4 }}</div>
+            </div>
+        {% endfor %}
+        {% for player_index in range(4) %}
+            {# Second team's turn #}
+            {% set throw_form = form.team_2_round_throws.entries[0] %}
+            {% set single_throw = throw_form['round_2'].entries[throw_round] %}
+            <div class="single-throw-form">
+                <div>{{ _('2. ') }}</div>
+                <div>{{ single_throw.player_id }}</div>
+                <div>{{ single_throw.throw_1 }}</div>
+                <div>{{ single_throw.throw_2 }}</div>
+                <div>{{ single_throw.throw_3 }}</div>
+                <div>{{ single_throw.throw_4 }}</div>
+            </div>
+        {% endfor %}
     {% endfor %}
 
     <div class="round-score">
         <div>{{ _('Round 2 Scores') }}</div>
-        <div>{{ form.score_1_2.data }}</div>
-        <div>{{ form.score_2_2.data }}</div>
+        <div>{{ form.score_1_2 }}</div>
+        <div>{{ form.score_2_2 }}</div>
     </div>
 
     <div class="end-score">
