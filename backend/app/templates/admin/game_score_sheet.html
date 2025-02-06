@@ -93,31 +93,36 @@
 {% endblock %}
 
 {% block edit_form %}
-    <form action="" method="POST" role="form" class="admin-form form-horizontal" enctype="multipart/form-data">
-        {{ form.hidden_tag() if form.hidden_tag }}
-        <input type="hidden" name="form_type" value="desktop">
-        
-        <!-- Add Auto-fill and Toggle Form buttons at the top -->
-        <div class="form-actions mb-3"></div>
-            <button type="button" class="btn btn-secondary" onclick="autoFillForm()">
-                {{ _('Auto-fill Test Data') }}
-            </button>
-            <button type="button" class="btn btn-secondary" id="toggleFormButton" onclick="toggleForm()">
-                {{ _('Switch to Mobile Form') }}
-            </button>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <form action="" method="POST" role="form" class="admin-form" enctype="multipart/form-data">
+                    {{ form.hidden_tag() if form.hidden_tag }}
+                    <input type="hidden" name="form_type" value="desktop">
+                    
+                    <div class="form-actions mb-3">
+                        <button type="button" class="btn btn-secondary" onclick="autoFillForm()">
+                            {{ _('Auto-fill Test Data') }}
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="toggleFormButton" onclick="toggleForm()">
+                            {{ _('Switch to Mobile Form') }}
+                        </button>
+                    </div>
+
+                    <!-- Include desktop form -->
+                    {% include 'admin/partials/desktop_form.html' %}
+
+                    <!-- Include mobile form -->
+                    {% include 'admin/partials/mobile_form.html' %}
+
+                    <div class="form-actions mt-3">
+                        <input type="submit" class="btn btn-primary" value="{{ _('Save') }}" />
+                        <a href="{{ return_url }}" class="btn btn-default">{{ _('Cancel') }}</a>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <!-- Include desktop form -->
-        {% include 'admin/partials/desktop_form.html' %}
-
-        <!-- Include mobile form -->
-        {% include 'admin/partials/mobile_form.html' %}
-
-        <div class="form-actions">
-            <input type="submit" class="btn btn-primary" value="{{ _('Save') }}" />
-            <a href="{{ return_url }}" class="btn btn-default">{{ _('Cancel') }}</a>
-        </div>
-    </form>
+    </div>
 {% endblock %}
 
 {% block tail %}
@@ -162,6 +167,34 @@
 {% endblock %}
 
 <style>
+    .container-fluid {
+        padding: 20px;
+    }
+    
+    .admin-form {
+        background-color: white;
+        padding: 20px;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    .game-score-sheet-table {
+        width: 100%;
+        margin-bottom: 1rem;
+        background-color: transparent;
+    }
+
+    .game-score-sheet-table th,
+    .game-score-sheet-table td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+
+    .form-actions {
+        border-top: 1px solid #dee2e6;
+        padding-top: 1rem;
+    }
+
     .single-throw-form {
         margin-bottom: 10px;
     }
