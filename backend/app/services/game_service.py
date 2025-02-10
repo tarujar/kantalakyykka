@@ -21,6 +21,14 @@ class GameService:
         session.rollback()
         
         try:
+            # Update game scores first
+            game = session.query(GameModel).get(game_id)
+            if game:
+                game.score_1_1 = form.score_1_1.data
+                game.score_1_2 = form.score_1_2.data
+                game.score_2_1 = form.score_2_1.data
+                game.score_2_2 = form.score_2_2.data
+
             # Get existing throws for mapping
             existing_throws = session.query(SingleRoundThrow).filter_by(game_id=game_id).all()
             existing_throws_map = {(t.game_set_index, t.throw_position, t.home_team): t for t in existing_throws}
@@ -34,7 +42,7 @@ class GameService:
             
             # Try to commit all changes
             session.commit()
-            self.logger.info("Successfully saved all throws")
+            self.logger.info(f"Successfully saved all throws for game {game_id}")
             return True
             
         except Exception as e:

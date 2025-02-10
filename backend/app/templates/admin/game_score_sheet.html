@@ -41,17 +41,36 @@
             const toggleButton = document.querySelector('#toggleFormButton');
             const formTypeInput = document.querySelector('input[name="form_type"]');
 
+            // Sync form data before switching
             if (desktopForm.style.display === 'none') {
+                // Switching to desktop - sync mobile to desktop
+                syncFormData('.mobile-form', '.desktop-form');
                 desktopForm.style.display = 'block';
                 mobileForm.style.display = 'none';
                 toggleButton.textContent = '{{ _("Switch to Mobile Form") }}';
                 formTypeInput.value = 'desktop';
             } else {
+                // Switching to mobile - sync desktop to mobile
+                syncFormData('.desktop-form', '.mobile-form');
                 desktopForm.style.display = 'none';
                 mobileForm.style.display = 'block';
                 toggleButton.textContent = '{{ _("Switch to Desktop Form") }}';
                 formTypeInput.value = 'mobile';
             }
+        }
+
+        function syncFormData(sourceFormSelector, targetFormSelector) {
+            const sourceForm = document.querySelector(sourceFormSelector);
+            const targetForm = document.querySelector(targetFormSelector);
+
+            // Sync all input fields
+            sourceForm.querySelectorAll('input[name], select[name]').forEach(sourceInput => {
+                const inputName = sourceInput.getAttribute('name');
+                const targetInput = targetForm.querySelector(`[name="${inputName}"]`);
+                if (targetInput) {
+                    targetInput.value = sourceInput.value;
+                }
+            });
         }
 
         function adjustMobileFormLayout(gameType, throwRoundAmount) {
@@ -89,6 +108,148 @@
                 }
             });
         }
+
+        const DRAFT_KEY = 'gameScoreSheetDraft_' + '{{ request.args.get("id", "") }}';
+
+        function saveDraft() {
+            const form = document.querySelector('form');
+            const formData = new FormData(form);
+            const draftData = {};
+            
+            for (const [key, value] of formData.entries()) {
+                draftData[key] = value;
+            }
+            
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+            showToast('Draft saved successfully');
+        }
+
+        function loadDraft() {
+            const draftData = localStorage.getItem(DRAFT_KEY);
+            if (!draftData) {
+                showToast('No draft found');
+                return;
+            }
+
+            const data = JSON.parse(draftData);
+            const form = document.querySelector('form');
+            
+            for (const [key, value] of Object.entries(data)) {
+                const input = form.querySelector(`[name="${key}"]`);
+                if (input) {
+                    input.value = value;
+                }
+            }
+            
+            showToast('Draft loaded successfully');
+        }
+
+        function clearDraft() {
+            if (confirm('Are you sure you want to clear the draft?')) {
+                localStorage.removeItem(DRAFT_KEY);
+            }
+        }
+
+        function showTab(tabId) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show selected tab content
+            const selectedTab = document.getElementById(tabId);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+
+            // Add active class to clicked button
+            const selectedButton = document.querySelector(`.tab-button[onclick*="${tabId}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('active');
+            }
+
+            // Save last active tab to localStorage
+            localStorage.setItem('lastActiveTab', tabId);
+        }
+
+        function calculateTotalScores() {
+            // Get score inputs
+            const score11 = parseInt(document.querySelector('input[name="score_1_1"]').value) || 0;
+            const score12 = parseInt(document.querySelector('input[name="score_1_2"]').value) || 0;
+            const score21 = parseInt(document.querySelector('input[name="score_2_1"]').value) || 0;
+            const score22 = parseInt(document.querySelector('input[name="score_2_2"]').value) || 0;
+
+            // Calculate totals
+            const team1Total = score11 + score12;
+            const team2Total = score21 + score22;
+
+            // Update total score displays
+            document.querySelector('#team1-total').textContent = team1Total;
+            document.querySelector('#team2-total').textContent = team2Total;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    // Get the active form (mobile or desktop)
+                    const activeForm = document.querySelector('.mobile-form').style.display === 'none' 
+                        ? '.desktop-form' 
+                        : '.mobile-form';
+                    
+                    // Sync the active form's data to the other form before submission
+                    const inactiveForm = activeForm === '.desktop-form' ? '.mobile-form' : '.desktop-form';
+                    syncFormData(activeForm, inactiveForm);
+
+                    // Log form submission for debugging
+                    console.log('Form submission started from ' + activeForm);
+                    const formData = new FormData(form);
+                    for (const [key, value] of formData.entries()) {
+                        console.log(`${key}: ${value}`);
+                    }
+                });
+            }
+
+            // Initialize form visibility
+            const desktopForm = document.querySelector('.desktop-form');
+            const mobileForm = document.querySelector('.mobile-form');
+            const toggleButton = document.querySelector('#toggleFormButton');
+            const formTypeInput = document.querySelector('input[name="form_type"]');
+
+            if (window.innerWidth <= 768) {
+                desktopForm.style.display = 'none';
+                mobileForm.style.display = 'block';
+                toggleButton.textContent = '{{ _("Switch to Desktop Form") }}';
+                formTypeInput.value = 'mobile';
+            } else {
+                desktopForm.style.display = 'block';
+                mobileForm.style.display = 'none';
+                toggleButton.textContent = '{{ _("Switch to Mobile Form") }}';
+                formTypeInput.value = 'desktop';
+            }
+
+            // Adjust mobile form layout based on the game type and throw round amount
+            adjustMobileFormLayout('{{ game_type }}', '{{ throw_round_amount }}');
+
+            // Restore last active tab
+            const lastActiveTab = localStorage.getItem('lastActiveTab');
+            if (lastActiveTab) {
+                showTab(lastActiveTab);
+            }
+
+            // Add change event listeners to score inputs
+            const scoreInputs = document.querySelectorAll('.score-input');
+            scoreInputs.forEach(input => {
+                input.addEventListener('change', calculateTotalScores);
+            });
+        });
     </script>
 {% endblock %}
 
@@ -132,13 +293,21 @@
             const form = document.querySelector('form');
             if (form) {
                 form.addEventListener('submit', function(event) {
-                    // Log form submission
-                    console.log('Form submission started');
+                    // Get the active form (mobile or desktop)
+                    const activeForm = document.querySelector('.mobile-form').style.display === 'none' 
+                        ? '.desktop-form' 
+                        : '.mobile-form';
+                    
+                    // Sync the active form's data to the other form before submission
+                    const inactiveForm = activeForm === '.desktop-form' ? '.mobile-form' : '.desktop-form';
+                    syncFormData(activeForm, inactiveForm);
+
+                    // Log form submission for debugging
+                    console.log('Form submission started from ' + activeForm);
                     const formData = new FormData(form);
                     for (const [key, value] of formData.entries()) {
                         console.log(`${key}: ${value}`);
                     }
-                    // Don't prevent default - let the form submit normally
                 });
             }
 
@@ -162,6 +331,18 @@
 
             // Adjust mobile form layout based on the game type and throw round amount
             adjustMobileFormLayout('{{ game_type }}', '{{ throw_round_amount }}');
+
+            // Restore last active tab
+            const lastActiveTab = localStorage.getItem('lastActiveTab');
+            if (lastActiveTab) {
+                showTab(lastActiveTab);
+            }
+
+            // Add change event listeners to score inputs
+            const scoreInputs = document.querySelectorAll('.score-input');
+            scoreInputs.forEach(input => {
+                input.addEventListener('change', calculateTotalScores);
+            });
         });
     </script>
 {% endblock %}

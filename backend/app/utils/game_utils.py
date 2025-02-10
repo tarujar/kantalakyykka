@@ -5,47 +5,6 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-def process_single_throw(session, game_service, game_id, throw_form, round_num, pos, is_home_team, existing_throws_map):
-    """Helper method to process a single throw mobilempbilemaybes"""
-    logger.debug(f"Processing MOBILE throw for round {round_num}, position {pos}, home_team {is_home_team}")
-    
-    # Check if this throw already exists
-    existing_throw = existing_throws_map.get((round_num, pos, is_home_team))
-    
-    # Save each throw and get its ID
-    throw_1_id = game_service.save_throw(session, throw_form.throw_1.data, existing_throw.throw_1 if existing_throw else None)
-    throw_2_id = game_service.save_throw(session, throw_form.throw_2.data, existing_throw.throw_2 if existing_throw else None)
-    throw_3_id = game_service.save_throw(session, throw_form.throw_3.data, existing_throw.throw_3 if existing_throw else None)
-    throw_4_id = game_service.save_throw(session, throw_form.throw_4.data, existing_throw.throw_4 if existing_throw else None)
-    session.flush()  # Ensure throw IDs are available
-    
-    player_id = throw_form.player_id.data  # Extract the player_id value
-
-    if existing_throw:
-        # Update existing throw
-        existing_throw.player_id = player_id
-        existing_throw.throw_1 = throw_1_id
-        existing_throw.throw_2 = throw_2_id
-        existing_throw.throw_3 = throw_3_id
-        existing_throw.throw_4 = throw_4_id
-        logger.debug(f"Updated existing throw: {existing_throw.__dict__}")
-    else:
-        # Create new throw
-        throw = SingleRoundThrow(
-            game_id=game_id,
-            game_set_index=round_num,
-            throw_position=pos,
-            home_team=is_home_team,
-            player_id=player_id,
-            throw_1=throw_1_id,
-            throw_2=throw_2_id,
-            throw_3=throw_3_id,
-            throw_4=throw_4_id
-        )
-        session.add(throw)
-        session.flush()
-        logger.debug(f"New throw saved with ID: {throw.id}")
-
 def set_player_choices(form, team1_players, team2_players):
     """Set player choices for form fields"""
     for team_index, (throws, players) in enumerate([(form.team_1_round_throws, team1_players), 

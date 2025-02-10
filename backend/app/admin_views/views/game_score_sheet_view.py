@@ -46,6 +46,14 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
             return redirect(url_for('.index_view'))
 
         if request.method == 'POST':
+            # Log raw form data before processing
+            self.logger.debug("Raw form data received:")
+            for key, value in request.form.items():
+                if 'throw_' in key:
+                    self.logger.debug(f"{key}: {value}")
+                if 'score_' in key:
+                    self.logger.debug(f"{key}: {value}")
+
             form = GameScoreSheetForm(request.form)
             game = self.get_game(id)
             if game:
@@ -55,6 +63,18 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
 
             if form.validate():
                 try:
+                    # Debug form object data after validation
+                    self.logger.debug("Validated form data:")
+                    for team_index, team_throws in enumerate([form.team_1_round_throws, form.team_2_round_throws]):
+                        team_name = f"Team {team_index + 1}"
+                        for entry in team_throws:
+                            for round_num in [1, 2]:
+                                round_data = getattr(entry, f'round_{round_num}')
+                                for pos, throw_form in enumerate(round_data, 1):
+                                    self.logger.debug(f"{team_name} Round {round_num} Position {pos}:")
+                                    self.logger.debug(f"  Raw data: {[getattr(throw_form, f'throw_{i}').raw_data[0] for i in range(1, 5) if getattr(throw_form, f'throw_{i}').raw_data]}")
+                                    self.logger.debug(f"  Processed data: {[getattr(throw_form, f'throw_{i}').data for i in range(1, 5)]}")
+
                     self.game_service.process_game_throws(model.id, form, self.session)
                     flash('Throws saved successfully!', 'success')
                     return redirect(url_for('.index_view'))
@@ -63,7 +83,7 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
                     flash('Error saving throws', 'error')
             else:
                 self.logger.warning(f"Form validation failed: {form.errors}")
-                flash('Form validation failed', 'error')
+                flash('Form validation failed. Check the form data.', 'error')
                 # Return the same form with errors
                 return self.render(
                     self.edit_template,

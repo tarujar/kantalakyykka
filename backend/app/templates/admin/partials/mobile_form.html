@@ -1,79 +1,247 @@
 <div class="mobile-form">
-    <div class="round-header">{{ _('Round 1') }}</div>
-    {% for throw_round in range(form.team_1_round_throws.entries[0].round_1.entries|length) %}
-        {% for player_index in range(4) %}
-            {# First team's turn #}
-            {% set throw_form = form.team_1_round_throws.entries[0] %}
-            {% set single_throw = throw_form['round_1'].entries[throw_round] %}
-            <div class="single-throw-form">
-                <div>{{ _('1. ') }}</div>
-                <div>{{ single_throw.player_id }}</div>
-                <div>{{ single_throw.throw_1 }}</div>
-                <div>{{ single_throw.throw_2 }}</div>
-                <div>{{ single_throw.throw_3 }}</div>
-                <div>{{ single_throw.throw_4 }}</div>
-            </div>
-        {% endfor %}
-        {% for player_index in range(4) %}
-            {# Second team's turn #}
-            {% set throw_form = form.team_2_round_throws.entries[0] %}
-            {% set single_throw = throw_form['round_1'].entries[throw_round] %}
-            <div class="single-throw-form">
-                <div>{{ _('2. ') }}</div>
-                <div>{{ single_throw.player_id }}</div>
-                <div>{{ single_throw.throw_1 }}</div>
-                <div>{{ single_throw.throw_2 }}</div>
-                <div>{{ single_throw.throw_3 }}</div>
-                <div>{{ single_throw.throw_4 }}</div>
-            </div>
-        {% endfor %}
-    {% endfor %}
-
-    <div class="round-score">
-        <div>{{ _('Round 1 Scores') }}</div>
-        <div>{{ form.score_1_1 }}</div>
-        <div>{{ form.score_2_1 }}</div>
+    <div class="draft-controls">
+        <button type="button" class="btn btn-secondary" onclick="saveDraft()">
+            {{ _('Save Draft') }}
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="loadDraft()">
+            {{ _('Load Draft') }}
+        </button>
+        <button type="button" class="btn btn-danger" onclick="clearDraft()">
+            {{ _('Clear Draft') }}
+        </button>
     </div>
 
-    <div class="round-header">{{ _('Round 2') }}</div>
-    {% for throw_round in range(form.team_1_round_throws.entries[0].round_2.entries|length) %}
-        {% for player_index in range(4) %}
-            {# First team's turn #}
-            {% set throw_form = form.team_1_round_throws.entries[0] %}
-            {% set single_throw = throw_form['round_2'].entries[throw_round] %}
-            <div class="single-throw-form">
-                <div>{{ _('1. ') }}</div>
-                <div>{{ single_throw.player_id }}</div>
-                <div>{{ single_throw.throw_1 }}</div>
-                <div>{{ single_throw.throw_2 }}</div>
-                <div>{{ single_throw.throw_3 }}</div>
-                <div>{{ single_throw.throw_4 }}</div>
-            </div>
-        {% endfor %}
-        {% for player_index in range(4) %}
-            {# Second team's turn #}
-            {% set throw_form = form.team_2_round_throws.entries[0] %}
-            {% set single_throw = throw_form['round_2'].entries[throw_round] %}
-            <div class="single-throw-form">
-                <div>{{ _('2. ') }}</div>
-                <div>{{ single_throw.player_id }}</div>
-                <div>{{ single_throw.throw_1 }}</div>
-                <div>{{ single_throw.throw_2 }}</div>
-                <div>{{ single_throw.throw_3 }}</div>
-                <div>{{ single_throw.throw_4 }}</div>
-            </div>
-        {% endfor %}
-    {% endfor %}
-
-    <div class="round-score">
-        <div>{{ _('Round 2 Scores') }}</div>
-        <div>{{ form.score_1_2 }}</div>
-        <div>{{ form.score_2_2 }}</div>
+    <div class="mobile-tabs">
+        <button type="button"  class="tab-button active" onclick="showTab('round1')">{{ _('Round 1') }}</button>
+        <button type="button" class="tab-button" onclick="showTab('round2')">{{ _('Round 2') }}</button>
+        <button type="button" class="tab-button" onclick="showTab('scores')">{{ _('Scores') }}</button>
     </div>
 
-    <div class="end-score">
-        <div>{{ _('End Scores') }}</div>
-        <div>{{ form.end_score_team_1.data }}</div>
-        <div>{{ form.end_score_team_2.data }}</div>
+    <div id="round1" class="tab-content active">
+        {% for team_num in [1, 2] %}
+            <div class="team-section">
+                <h3>{{ _('Team') }} {{ team_num }}</h3>
+                {% for player_index in range(4) %}
+                    {% set throw_form = form['team_' ~ team_num ~ '_round_throws'].entries[0] %}
+                    {% set single_throw = throw_form['round_1'].entries[player_index] %}
+                    <div class="player-throws">
+                        <select name="{{ single_throw.player_id.name }}" class="player-select" required>
+                            {% for value, label in single_throw.player_id.choices %}
+                                <option value="{{ value }}" {% if value == single_throw.player_id.data %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="throw-inputs">
+                            {% for i in range(1, 5) %}
+                                <input type="text" 
+                                       name="{{ single_throw['throw_' ~ i].name }}"
+                                       value="{{ single_throw['throw_' ~ i].data if single_throw['throw_' ~ i].data is not none else '' }}"
+                                       class="form-control throw-input"
+                                       required>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="{{ single_throw.game_set_index.name }}" value="1">
+                        <input type="hidden" name="{{ single_throw.throw_position.name }}" value="{{ player_index + 1 }}">
+                        <input type="hidden" name="{{ single_throw.home_team.name }}" value="{{ 'true' if team_num == 1 else 'false' }}">
+                        {{ single_throw.hidden_tag() if single_throw.hidden_tag }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div id="round2" class="tab-content">
+        {% for team_num in [1, 2] %}
+            <div class="team-section">
+                <h3>{{ _('Team') }} {{ team_num }}</h3>
+                {% for player_index in range(4) %}
+                    {% set throw_form = form['team_' ~ team_num ~ '_round_throws'].entries[0] %}
+                    {% set single_throw = throw_form['round_2'].entries[player_index] %}
+                    <div class="player-throws">
+                        <select name="{{ single_throw.player_id.name }}" class="player-select" required>
+                            {% for value, label in single_throw.player_id.choices %}
+                                <option value="{{ value }}" {% if value == single_throw.player_id.data %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="throw-inputs">
+                            {% for i in range(1, 5) %}
+                                <input type="text" 
+                                       name="{{ single_throw['throw_' ~ i].name }}"
+                                       value="{{ single_throw['throw_' ~ i].data if single_throw['throw_' ~ i].data is not none else '' }}"
+                                       class="form-control throw-input"
+                                       required>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="{{ single_throw.game_set_index.name }}" value="2">
+                        <input type="hidden" name="{{ single_throw.throw_position.name }}" value="{{ player_index + 1 }}">
+                        <input type="hidden" name="{{ single_throw.home_team.name }}" value="{{ 'true' if team_num == 1 else 'false' }}">
+                        {{ single_throw.hidden_tag() if single_throw.hidden_tag }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div id="scores" class="tab-content">
+        <div class="score-section">
+            <h3>{{ _('Round 1') }}</h3>
+            <div class="score-inputs">
+                <div>
+                    <label>{{ _('Team 1') }}</label>
+                    {{ form.score_1_1(class='score-input', onchange='calculateTotalScores()') }}
+                </div>
+                <div>
+                    <label>{{ _('Team 2') }}</label>
+                    {{ form.score_2_1(class='score-input', onchange='calculateTotalScores()') }}
+                </div>
+            </div>
+
+            <h3>{{ _('Round 2') }}</h3>
+            <div class="score-inputs">
+                <div>
+                    <label>{{ _('Team 1') }}</label>
+                    {{ form.score_1_2(class='score-input', onchange='calculateTotalScores()') }}
+                </div>
+                <div>
+                    <label>{{ _('Team 2') }}</label>
+                    {{ form.score_2_2(class='score-input', onchange='calculateTotalScores()') }}
+                </div>
+            </div>
+
+            <h3>{{ _('Final Scores') }}</h3>
+            <div class="final-scores">
+                <div>
+                    <label>{{ _('Team 1 Total') }}</label>
+                    <span id="team1-total">{{ form.end_score_team_1.data }}</span>
+                </div>
+                <div>
+                    <label>{{ _('Team 2 Total') }}</label>
+                    <span id="team2-total">{{ form.end_score_team_2.data }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this fixed bottom save button -->
+    <div class="mobile-save-button">
+        <button type="submit" class="btn btn-primary btn-lg btn-block">
+            {{ _('Save Game') }}
+        </button>
     </div>
 </div>
+
+<style>
+.mobile-form {
+    padding: 10px;
+    padding-bottom: 80px;
+}
+
+.draft-controls {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.mobile-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.tab-button {
+    padding: 10px 15px;
+    border: none;
+    background: none;
+    color: #6c757d;
+}
+
+.tab-button.active {
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.team-section {
+    margin-bottom: 20px;
+}
+
+.player-throws {
+    background: white;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.player-select {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.throw-inputs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.throw-input {
+    width: 100%;
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.score-section {
+    padding: 15px;
+}
+
+.score-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.score-input {
+    width: 100%;
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.final-scores {
+    margin-top: 20px;    text-align: center;
+}
+
+.mobile-save-button {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background: white;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.mobile-save-button .btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 18px;
+}
+</style>
