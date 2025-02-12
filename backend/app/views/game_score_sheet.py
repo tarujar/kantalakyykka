@@ -42,10 +42,8 @@ class GameScoreSheetAdmin(ModelView):
             except Exception as e:
                 self.logger.error(f"Error saving throws: {e}", exc_info=True)
                 flash('Error saving throws', 'error')
-        else:
-            self.logger.warning(f"Form validation failed: {form.errors}")
-            flash('Form validation failed', 'error')
 
+        # Return same form on validation failure without duplicate error logging
         return self.render(
             self.edit_template,
             form=form,

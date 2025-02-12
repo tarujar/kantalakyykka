@@ -1,8 +1,9 @@
 from flask_babel import lazy_gettext as _
 from wtforms import SelectField, IntegerField, BooleanField, FormField, FieldList
 from flask_wtf import FlaskForm
-from wtforms.validators import DataRequired, ValidationError
+from wtforms.validators import DataRequired, ValidationError, NumberRange
 from app.utils.throw_input import ThrowInputField
+from app.utils.game_constants import GameScores
 
 class SingleRoundThrowForm(FlaskForm):
     class Meta:
@@ -40,10 +41,27 @@ class TeamRoundThrowsForm(FlaskForm):
 class GameScoreSheetForm(FlaskForm):
     team_1_round_throws = FieldList(FormField(TeamRoundThrowsForm), min_entries=1, max_entries=1)
     team_2_round_throws = FieldList(FormField(TeamRoundThrowsForm), min_entries=1, max_entries=1)
-    score_1_1 = IntegerField(_('score_1_1'))
-    score_1_2 = IntegerField(_('score_1_2'))
-    score_2_1 = IntegerField(_('score_2_1'))
-    score_2_2 = IntegerField(_('score_2_2'))
+    score_1_1 = IntegerField(_('score_1_1'), 
+        validators=[DataRequired(), NumberRange(
+            min=GameScores.ROUND_SCORE_MIN, 
+            max=GameScores.ROUND_SCORE_MAX,
+            message=_('Round score must be between %(min)d and %(max)d')
+        )])
+    score_1_2 = IntegerField(_('score_1_2'), 
+        validators=[DataRequired(), NumberRange(
+            min=GameScores.ROUND_SCORE_MIN, 
+            max=GameScores.ROUND_SCORE_MAX
+        )])
+    score_2_1 = IntegerField(_('score_2_1'), 
+        validators=[DataRequired(), NumberRange(
+            min=GameScores.ROUND_SCORE_MIN, 
+            max=GameScores.ROUND_SCORE_MAX
+        )])
+    score_2_2 = IntegerField(_('score_2_2'), 
+        validators=[DataRequired(), NumberRange(
+            min=GameScores.ROUND_SCORE_MIN, 
+            max=GameScores.ROUND_SCORE_MAX
+        )])
     end_score_team_1 = IntegerField(_('end_score_team_1'))
     end_score_team_2 = IntegerField(_('end_score_team_2'))
 

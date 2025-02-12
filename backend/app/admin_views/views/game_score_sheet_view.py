@@ -1,6 +1,6 @@
 from flask_babel import lazy_gettext as _
 from flask_admin.contrib.sqla import ModelView
-from flask import request, url_for, flash, redirect
+from flask import request, url_for, flash, redirect, jsonify
 from flask_admin import expose
 from app.utils.display import format_end_game_score
 from app.utils.choices import get_team_players
@@ -8,6 +8,7 @@ from app.utils.game_utils import load_existing_throws, set_player_choices
 from app.services.game_service import GameService
 from app.forms.throw_forms import GameScoreSheetForm 
 import logging
+from app.utils.game_constants import GameScores  # Ensure this import is correct
 
 class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelView
     # Configuration
@@ -34,6 +35,31 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
         self.logger.setLevel(logging.DEBUG)
         self.game_service = GameService()  # This will handle all throw processing
         super().__init__(model, session, **kwargs)
+
+    def _flatten_form_errors(self, form_errors):
+        """Flatten nested form errors into a dict of field_name: [error_messages]"""
+        flattened = {}
+        
+        def _flatten(errors, prefix=''):
+            for key, value in errors.items():
+                if isinstance(value, (list, tuple)):
+                    # Handle list of forms (like FieldList)
+                    for i, item in enumerate(value):
+                        if isinstance(item, dict):
+                            _flatten(item, f"{prefix}{key}-{i}-")
+                        else:
+                            field_name = f"{prefix}{key}"
+                            flattened[field_name] = value
+                            break
+                elif isinstance(value, dict):
+                    # Handle nested form
+                    _flatten(value, f"{prefix}{key}-")
+                else:
+                    field_name = f"{prefix}{key}"
+                    flattened[field_name] = value
+
+        _flatten(form_errors)
+        return flattened
 
     @expose('/edit/', methods=('GET', 'POST'))
     def edit_form_view(self):
@@ -83,14 +109,28 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
                     flash('Error saving throws', 'error')
             else:
                 self.logger.warning(f"Form validation failed: {form.errors}")
-                flash('Form validation failed. Check the form data.', 'error')
-                # Return the same form with errors
+                flattened_errors = self._flatten_form_errors(form.errors)
+                
+                # Get the form type from the submitted data
+                form_type = request.form.get('form_type', 'desktop')
+                
                 return self.render(
                     self.edit_template,
                     form=form,
                     model=model,
-                    return_url=url_for('.index_view')
+                    game_constants=GameScores,
+                    return_url=url_for('.index_view'),
+                    form_errors=flattened_errors,
+                    active_view=form_type  # Pass the active view to template
                 )
+
+            return self.render(
+                self.edit_template,
+                form=form,
+                model=model,
+                game_constants=GameScores,
+                return_url=url_for('.index_view')
+            )
 
         # GET request
         form = GameScoreSheetForm()
@@ -106,7 +146,9 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
             self.edit_template,
             form=form,
             model=model,
-            return_url=url_for('.index_view')
+            game_constants=GameScores,  # Pass GameScores to the template context
+            return_url=url_for('.index_view'),
+            active_view='desktop'  # Default to desktop view
         )
 
     def get_game(self, game_id):
@@ -120,6 +162,11 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
     def is_accessible(self):
         self.logger.debug("Checking view accessibility")
         return super().is_accessible()
+
+    def render(self, template, **kwargs):
+        # Add GameScores to the template context
+        kwargs['game_constants'] = GameScores
+        return super().render(template, **kwargs)
 
     column_formatters = {
         'end_game_score': lambda v, c, m, p: format_end_game_score(m)

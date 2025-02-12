@@ -1,14 +1,27 @@
 {% macro render_throw_input(throw_field) %}
-    <td><input type="text" name="{{ throw_field.name }}" value="{{ throw_field.data if throw_field.data is not none else '' }}" class="form-control" required></td>
+    <td>
+        <input type="text" 
+               name="{{ throw_field.name }}" 
+               value="{{ throw_field.data if throw_field.data is not none else '' }}" 
+               class="form-control throw-input {% if throw_field.errors %}is-invalid{% endif %}" 
+               required>
+    </td>
 {% endmacro %}
 
 {% macro render_score_input(form, team_num, round_num) %}
     {% set score_attr = 'score_' ~ team_num ~ '_' ~ round_num %}
     {% set score_field = form[score_attr] %}
-    <input type="number" 
-           name="{{ score_field.name }}" 
-           value="{{ score_field.data if score_field.data is not none else '' }}" 
-           class="form-control score-input">
+    <div>
+        <input type="number" 
+               name="{{ score_field.name }}" 
+               value="{{ score_field.data if score_field.data is not none else '' }}" 
+               class="form-control score-input {% if score_field.errors %}is-invalid{% endif %}">
+        {% if score_field.errors %}
+            <div class="invalid-feedback d-block">
+                {{ score_field.errors|join(', ') }}
+            </div>
+        {% endif %}
+    </div>
 {% endmacro %}
 <!--
 Score sheet order for 4-player-team game-throws is always the same:
@@ -33,6 +46,16 @@ Team 1: Player 3
 Team 1: Player 4
 -->
 <div class="desktop-form">
+    <div class="help-text mb-3">
+        <strong>Valid inputs:</strong>
+        <ul>
+            <li>Score (-40 to 80)</li>
+            <li>H = Hauki (0 points)</li>
+            <li>F = Fault (0 points)</li>
+            <li>E = Empty/Unused (1 point)</li>
+        </ul>
+    </div>
+
     <div class="table-responsive">
         <table class="game-score-sheet-table table table-bordered">
             <thead>
@@ -168,42 +191,3 @@ Team 1: Player 4
         </table>
     </div>
 </div>
-
-<style>
-    .desktop-form {
-        margin: 0 auto;
-        max-width: 1200px;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 6px 12px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-    }
-    
-    .single-throw-form input[type="text"] {
-        width: 60px;
-    }
-    
-    .round-score input[type="number"] {
-        width: 80px;
-    }
-
-    .table-responsive {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .game-score-sheet-table {
-        background-color: white;
-    }
-
-    .round-header {
-        background-color: #f8f9fa;
-    }
-
-    .round-score, .end-score {
-        background-color: #e9ecef;
-    }
-</style>

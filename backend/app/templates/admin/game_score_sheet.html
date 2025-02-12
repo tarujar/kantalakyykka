@@ -2,7 +2,31 @@
 
 {% block head %}
     {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/game_score_sheet.css') }}">
+    <script src="{{ url_for('static', filename='js/game_score_utils.js') }}"></script>
     <script>
+        var GAME_SCORES = {
+            "ROUND_SCORE_MIN": {{ game_constants.ROUND_SCORE_MIN | tojson }},
+            "ROUND_SCORE_MAX": {{ game_constants.ROUND_SCORE_MAX | tojson }},
+            "SINGLE_THROW_MIN": {{ game_constants.SINGLE_THROW_MIN | tojson }},
+            "SINGLE_THROW_MAX": {{ game_constants.SINGLE_THROW_MAX | tojson }}
+        };
+
+        // Convert string values to numbers when using them
+        function validateAndCalculateTotalScores(input) {
+            const value = parseInt(input.value);
+            const minScore = GAME_SCORES.ROUND_SCORE_MIN;
+            const maxScore = GAME_SCORES.ROUND_SCORE_MAX;
+            
+            if (value < minScore || value > maxScore) {
+                const message = `Round score must be between ${minScore} and ${maxScore}`;
+                alert(message);
+                input.value = '';
+                return;
+            }
+            calculateTotalScores();
+        }
+
         function autoFillForm() {
             // Set teams if they exist
             const team1Select = document.querySelector('select[name="team_1_id"]');
@@ -155,19 +179,24 @@
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => {
                 content.classList.remove('active');
-            });
-
-            // Remove active class from all tab buttons
-            const tabButtons = document.querySelectorAll('.tab-button');
-            tabButtons.forEach(button => {
-                button.classList.remove('active');
+                // Keep inputs focusable but visually hidden
+                content.style.position = 'absolute';
+                content.style.left = '-9999px';
             });
 
             // Show selected tab content
             const selectedTab = document.getElementById(tabId);
             if (selectedTab) {
                 selectedTab.classList.add('active');
+                selectedTab.style.position = 'relative';
+                selectedTab.style.left = '0';
             }
+
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
 
             // Add active class to clicked button
             const selectedButton = document.querySelector(`.tab-button[onclick*="${tabId}"]`);
@@ -195,6 +224,28 @@
             document.querySelector('#team2-total').textContent = team2Total;
         }
 
+        function displayFormErrors(errors) {
+            // Clear existing error messages
+            clearFormErrors();
+            
+            // Display new error messages
+            for (const [fieldName, errorMessages] of Object.entries(errors)) {
+                const input = document.querySelector(`[name="${fieldName}"]`);
+                if (input) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'invalid-feedback d-block';
+                    errorDiv.textContent = errorMessages.join(', ');
+                    input.classList.add('is-invalid');
+                    input.parentNode.appendChild(errorDiv);
+                }
+            }
+        }
+
+        function clearFormErrors() {
+            document.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('form');
             if (form) {
@@ -223,7 +274,10 @@
             const toggleButton = document.querySelector('#toggleFormButton');
             const formTypeInput = document.querySelector('input[name="form_type"]');
 
-            if (window.innerWidth <= 768) {
+            // Use active_view from server or fallback to screen width
+            const activeView = '{{ active_view|default("") }}' || (window.innerWidth <= 768 ? 'mobile' : 'desktop');
+            
+            if (activeView === 'mobile') {
                 desktopForm.style.display = 'none';
                 mobileForm.style.display = 'block';
                 toggleButton.textContent = '{{ _("Switch to Desktop Form") }}';
@@ -251,12 +305,41 @@
             });
         });
     </script>
+
+    <style>
+        /* Add toast styles */
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            z-index: 2000;
+            animation: fadeInOut 3s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
 {% endblock %}
 
 {% block edit_form %}
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
+                <!-- Add error message container at the top -->
+                {% if form_errors %}
+                    <div class="alert alert-danger">
+                        <strong>{{ _('Invalid input:') }}</strong> {{ _('Use a score (-40 to 80), H (hauki), F (fault), or E (unused)') }}
+                    </div>
+                {% endif %}
+
                 <form action="" method="POST" role="form" class="admin-form" enctype="multipart/form-data">
                     {{ form.hidden_tag() if form.hidden_tag }}
                     <input type="hidden" name="form_type" value="desktop">
@@ -276,8 +359,9 @@
                     <!-- Include mobile form -->
                     {% include 'admin/partials/mobile_form.html' %}
 
-                    <div class="form-actions mt-3">
-                        <input type="submit" class="btn btn-primary" value="{{ _('Save') }}" />
+                    <!-- Add desktop-only class to the default form actions -->
+                    <div class="form-actions mt-3 desktop-only-actions">
+                        <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
                         <a href="{{ return_url }}" class="btn btn-default">{{ _('Cancel') }}</a>
                     </div>
                 </form>
@@ -285,122 +369,3 @@
         </div>
     </div>
 {% endblock %}
-
-{% block tail %}
-    {{ super() }}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form');
-            if (form) {
-                form.addEventListener('submit', function(event) {
-                    // Get the active form (mobile or desktop)
-                    const activeForm = document.querySelector('.mobile-form').style.display === 'none' 
-                        ? '.desktop-form' 
-                        : '.mobile-form';
-                    
-                    // Sync the active form's data to the other form before submission
-                    const inactiveForm = activeForm === '.desktop-form' ? '.mobile-form' : '.desktop-form';
-                    syncFormData(activeForm, inactiveForm);
-
-                    // Log form submission for debugging
-                    console.log('Form submission started from ' + activeForm);
-                    const formData = new FormData(form);
-                    for (const [key, value] of formData.entries()) {
-                        console.log(`${key}: ${value}`);
-                    }
-                });
-            }
-
-            // Initialize form visibility
-            const desktopForm = document.querySelector('.desktop-form');
-            const mobileForm = document.querySelector('.mobile-form');
-            const toggleButton = document.querySelector('#toggleFormButton');
-            const formTypeInput = document.querySelector('input[name="form_type"]');
-
-            if (window.innerWidth <= 768) {
-                desktopForm.style.display = 'none';
-                mobileForm.style.display = 'block';
-                toggleButton.textContent = '{{ _("Switch to Desktop Form") }}';
-                formTypeInput.value = 'mobile';
-            } else {
-                desktopForm.style.display = 'block';
-                mobileForm.style.display = 'none';
-                toggleButton.textContent = '{{ _("Switch to Mobile Form") }}';
-                formTypeInput.value = 'desktop';
-            }
-
-            // Adjust mobile form layout based on the game type and throw round amount
-            adjustMobileFormLayout('{{ game_type }}', '{{ throw_round_amount }}');
-
-            // Restore last active tab
-            const lastActiveTab = localStorage.getItem('lastActiveTab');
-            if (lastActiveTab) {
-                showTab(lastActiveTab);
-            }
-
-            // Add change event listeners to score inputs
-            const scoreInputs = document.querySelectorAll('.score-input');
-            scoreInputs.forEach(input => {
-                input.addEventListener('change', calculateTotalScores);
-            });
-        });
-    </script>
-{% endblock %}
-
-<style>
-    .container-fluid {
-        padding: 20px;
-    }
-    
-    .admin-form {
-        background-color: white;
-        padding: 20px;
-        border-radius: 4px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    }
-
-    .game-score-sheet-table {
-        width: 100%;
-        margin-bottom: 1rem;
-        background-color: transparent;
-    }
-
-    .game-score-sheet-table th,
-    .game-score-sheet-table td {
-        padding: 0.75rem;
-        vertical-align: middle;
-    }
-
-    .form-actions {
-        border-top: 1px solid #dee2e6;
-        padding-top: 1rem;
-    }
-
-    .single-throw-form {
-        margin-bottom: 10px;
-    }
-    .form-actions {
-        margin: 20px 0;
-    }
-    .game-score-sheet-table td {
-        padding: 8px;
-    }
-    .round-header {
-        background-color: #f0f0f0;
-        font-weight: bold;
-        text-align: center;
-    }
-    .round-score {
-        background-color: #e0e0e0;
-        font-weight: bold;
-        text-align: center;
-    }
-    .end-score {
-        background-color: #d0d0d0;
-        font-weight: bold;
-        text-align: center;
-    }
-    input[type="number"] {
-        width: 80px;
-    }
-</style>

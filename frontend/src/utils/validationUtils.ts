@@ -1,7 +1,14 @@
+// Game score constants matching backend GameScores
+const GAME_SCORES = {
+  SINGLE_THROW_MIN: -40,  // All pappis in from border
+  SINGLE_THROW_MAX: 80,   // All kyykkas out
+  ROUND_SCORE_MIN: -80,   // 40 kyykkas * 2p
+  ROUND_SCORE_MAX: 19     // All kyykkas out in one throw + 1p for unused throw in henkka field
+};
 
 export function validateThrow(value: string): string {
-  // Sallitaan vain erikoismerkit H, U, -, E
-  const specialChars = ['H', 'U', '-', 'E'];
+  // Allow special characters H, F, E
+  const specialChars = ['H', 'F', 'E', ''];
   const upperValue = value.toUpperCase();
   
   if (specialChars.includes(upperValue)) {
@@ -11,13 +18,7 @@ export function validateThrow(value: string): string {
   const cleanValue = value.replace(/[^0-9-]/g, '');
   const numValue = parseInt(cleanValue);
   
-  // Rajoitukset:
-  // - Maksimi: 80 pistettä
-  // - Minimi: -8 pistettä
-  const MIN_THROW = -8;
-  const MAX_THROW = 80;
-  
-  if (isNaN(numValue) || numValue < MIN_THROW || numValue > MAX_THROW) {
+  if (isNaN(numValue) || numValue < GAME_SCORES.SINGLE_THROW_MIN || numValue > GAME_SCORES.SINGLE_THROW_MAX) {
     return '';
   }
   
@@ -32,4 +33,3 @@ export function validateScore(value: number, min: number, max: number): number {
 export function validateInputNumber(value: string): string {
   return value.replace(/[^0-9-]/g, '');
 }
- 
