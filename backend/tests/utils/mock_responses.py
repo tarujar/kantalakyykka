@@ -6,13 +6,13 @@ game_types_response = {
         {
             "id": 1,
             "name": "Henkkari",
-            "max_players": 1,
+            "team_player_amount": 1,
             "created_at": datetime.now(timezone.utc).isoformat()
         },
         {
             "id": 2,
             "name": "Pari",
-            "max_players": 2,
+            "team_player_amount": 2,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
     ]
@@ -23,7 +23,9 @@ game_type_response = {
     "data": {
         "id": 1,
         "name": "Henkkari",
-        "max_players": 1,
+        "team_player_amount": 1,
+        "game_player_amount": 4,
+        "team_throws_in_set": 16,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
 }
@@ -43,7 +45,7 @@ new_game_type_response = {
     "status_code": 201,
     "data": {
         "name": "New Game Type",
-        "max_players": 4
+        "team_player_amount": 4
     }
 }
 
@@ -51,7 +53,7 @@ updated_game_type_response = {
     "status_code": 200,
     "data": {
         "name": "Updated Game Type",
-        "max_players": 5
+        "team_player_amount": 5
     }
 }
 

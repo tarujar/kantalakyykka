@@ -5,35 +5,10 @@ from app.utils.choices import get_series_choices, get_player_choices_with_contac
 from app.utils.display import format_series_name, format_player_contact_info
 from flask import flash
 from app.utils.validation_messages import validate_team_form
+from app.models import SeriesRegistration 
 
-class TeamHistoryAdmin(CustomModelView):
-    column_labels = {
-        'previous_registration_id': _('previous_registration'),
-        'next_registration_id': _('next_registration'),
-        'relation_type': _('relation_type'),
-        'notes': _('notes'),
-        'created_at': _('created_at')
-    }
-    form_labels = column_labels
-    form_columns = ['previous_registration_id', 'next_registration_id', 'relation_type', 'notes', 'created_at']
-
-
-class PlayerAdmin(CustomModelView):
-    form_overrides = {
-        'email': StringField
-    }
-    column_labels = {
-        'name': _('name'),
-        'email': _('email'),
-        'created_at': _('created_at')
-    }
-    form_labels = column_labels
-    form_columns = ['name', 'email', 'created_at']
-
-
-
-class TeamInSeriesAdmin(CustomModelView):
-    form_columns = ['series_id', 'team_name', 'team_abbreviation', 'contact_player_id', 'group']
+class SeriesRegistrationAdmin(CustomModelView): 
+    form_columns = ['series_id', 'team_name', 'team_abbreviation', 'contact_player_id', 'lohko']  # Changed 'group' to 'lohko'
     column_list = form_columns + ['created_at']
     
     def create_form(self):
@@ -76,8 +51,8 @@ class TeamInSeriesAdmin(CustomModelView):
         super().__init__(model, session, **kwargs)
  
     def validate_form(self, form):
-        if not validate_team_form(form):
-            return False
+        #if not validate_team_form(form):
+        #    return False
         return super().validate_form(form)
 
     column_labels = {
@@ -86,7 +61,7 @@ class TeamInSeriesAdmin(CustomModelView):
         'team_abbreviation': _('team_abbreviation'),
         'contact_player_id': _('contact_player'),
         'created_at': _('created_at'),
-        'group': _('group')
+        'lohko': _('group') 
     }
 
     # Add formatters to display names instead of IDs
@@ -103,3 +78,37 @@ class TeamInSeriesAdmin(CustomModelView):
     }
 
     form_labels = column_labels
+
+
+class PlayerAdmin(CustomModelView):
+    form_overrides = {
+        'email': StringField
+    }
+    column_labels = {
+        'name': _('name'),
+        'email': _('email'),
+        'created_at': _('created_at')
+    }
+    form_labels = column_labels
+    form_columns = ['name', 'email', 'created_at']
+
+
+class TeamHistoryAdmin(CustomModelView):
+    column_labels = {
+        'previous_registration_id': _('previous_registration'),
+        'next_registration_id': _('next_registration'),
+        'relation_type': _('relation_type'),
+        'notes': _('notes'),
+        'created_at': _('created_at')
+    }
+    form_labels = column_labels
+    form_columns = ['previous_registration_id', 'next_registration_id', 'relation_type', 'notes', 'created_at']
+
+    # Update foreign key references in form
+    form_choices = {
+        'relation_type': [
+            ('continuation', _('continuation')),
+            ('split', _('split')),
+            ('merge', _('merge'))
+        ]
+    }

@@ -10,12 +10,16 @@ class ThrowInput(str, Enum):
 
 class GameTypeCreate(BaseModel):
     name: str
-    max_players: int
+    team_player_amount: int
+    team_throws_in_set: int
+    game_player_amount: int
 
 class GameType(BaseModel):
     id: Optional[int]
     name: str
-    max_players: int
+    team_player_amount: int
+    team_throws_in_set: int
+    game_player_amount: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -61,30 +65,36 @@ class Series(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class TeamInSeriesCreate(BaseModel):
+class SeriesRegistrationBase(BaseModel):
     series_id: int
-    team_name: str
-    team_abbreviation: str
+    lohko: Optional[str] = None
+    team_name: Optional[str] = None
+    team_abbreviation: Optional[str] = None
     contact_player_id: int
 
-    @model_validator(mode='after')
-    def validate_unique_in_series(self):
-        # Note: Actual DB-level uniqueness check needed in service layer
-        return self
+class SeriesRegistrationCreate(SeriesRegistrationBase):
+    pass
+
+class SeriesRegistration(SeriesRegistrationBase):
+    id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SeriesParticipant(BaseModel):
+    registration_id: int
+    series_id: int
+    participant_name: str
+    participant_abbreviation: str
+    participant_type: Literal['TEAM', 'PLAYER']
+    group_name: Optional[str]
+    contact_id: int
+
+    model_config = ConfigDict(from_attributes=True)
 
 class Team(BaseModel):
     id: Optional[int]
     name: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-class TeamInSeries(BaseModel):
-    id: Optional[int]
-    series_id: int
-    team_name: str
-    team_abbreviation: str
-    contact_player_id: int
-    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -155,8 +165,8 @@ class GameCreate(BaseModel):
     is_playoff: Optional[bool] = False
     series_id: int
     game_date: date
-    team_1_id: int
-    team_2_id: int
+    team_1_id: int  # Now references series_registrations.id
+    team_2_id: int  # Now references series_registrations.id
     score_1_1: int
     score_1_2: int
     score_2_1: int
@@ -175,8 +185,8 @@ class Game(BaseModel):
     round: Optional[str]
     is_playoff: Optional[bool]
     game_date: date
-    team_1_id: int
-    team_2_id: int
+    team_1: SeriesRegistration
+    team_2: SeriesRegistration
     score_1_1: int
     score_1_2: int
     score_2_1: int

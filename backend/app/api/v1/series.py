@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from typing import List
 from database.database import get_db
-from ...models.schemas import SeriesCreate, Series, TeamInSeriesCreate, TeamInSeries
+from ...models.schemas import SeriesCreate, Series, SeriesRegistrationCreate, SeriesRegistration
 from ...services import series_service
 import logging
 
@@ -58,10 +58,10 @@ async def list_series(db: AsyncSession = Depends(get_db)):
         logger.error(f"Error fetching series: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@router.post("/{series_id}/teams", response_model=TeamInSeries)
+@router.post("/{series_id}/teams", response_model=SeriesRegistration)
 async def add_team_to_series(
     series_id: int,
-    team: TeamInSeries,
+    team: SeriesRegistration,
     db: AsyncSession = Depends(get_db)
 ):
     db_team = await series_service.add_team_to_series(db=db, series_id=series_id, team=team)

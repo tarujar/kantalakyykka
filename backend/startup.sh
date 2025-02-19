@@ -64,7 +64,11 @@ if ! psql -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
     echo "Database created and schema initialized."
 fi
 
-echo "Running any pending Alembic migrations..."
+# Then run the structural changes
+echo "2. Adding new columns and constraints..."
+psql -d "$DB_NAME" -f database/migrations/002_add_throw_index_and_team_references.sql
+
+echo "Running any remaining Alembic migrations..."
 source venv/bin/activate
 alembic upgrade head
 

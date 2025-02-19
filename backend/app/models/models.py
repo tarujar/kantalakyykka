@@ -16,7 +16,9 @@ class GameType(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
-    max_players = Column(Integer, nullable=False)
+    team_player_amount = Column(Integer, nullable=False)
+    game_player_amount = Column(Integer, nullable=False, default=4)
+    team_throws_in_set = Column(Integer, nullable=False, default=16)
     throw_round_amount = Column(Integer, nullable=False, default=4)
     series = relationship("Series", back_populates="game_type")
 
@@ -27,12 +29,7 @@ class Player(Base):
     email = Column(String(120), unique=True, nullable=False)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
     gdpr_consent = Column(Boolean, default=False, nullable=False)  # Add this line
-    teams = relationship(
-        'TeamInSeries',
-        secondary='roster_players_in_series',
-        back_populates='players',
-        overlaps="team_rosters,roster_entries"
-    )
+    roster_entries = relationship('RosterPlayersInSeries', back_populates='player')
     throws = relationship("SingleRoundThrow", backref="player")
 
     def __repr__(self):
@@ -58,31 +55,32 @@ class Series(Base):
     registration_open = Column(Boolean, default=True)
     is_cup_league = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
-    teams = relationship("TeamInSeries", back_populates="series")
-    games = relationship("Game", back_populates="series") 
+    registrations = relationship("SeriesRegistration", back_populates="series")  # Keep this one
+    games = relationship("Game", back_populates="series")
 
-class TeamInSeries(Base):
-    __tablename__ = "teams_in_series"
+class SeriesRegistration(Base):
+    __tablename__ = "series_registrations"
     id = Column(Integer, primary_key=True, index=True)
     series_id = Column(Integer, ForeignKey("series.id"), nullable=False)
-    team_name = Column(String, nullable=False)
-    team_abbreviation = Column(String, nullable=False)
-    contact_player_id = Column(Integer, ForeignKey("players.id"), nullable=False)
-    group = Column(String)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
-    players = relationship(
-        'Player',
-        secondary='roster_players_in_series',
-        back_populates='teams',
-        overlaps="team_rosters,roster_entries"
+    lohko = Column(String(50))
+    team_name = Column(String(100))
+    team_abbreviation = Column(String(10))
+    contact_player_id = Column(Integer, ForeignKey("players.id"))
+    
+    series = relationship("Series", back_populates="registrations")  # Changed from backref to back_populates
+    contact_player = relationship("Player", backref="contact_for_registrations")
+    roster_entries = relationship(
+        'RosterPlayersInSeries',
+        back_populates='registration',
+        cascade="all, delete-orphan"
     )
-    series = relationship("Series", back_populates="teams")
 
 class TeamHistory(Base):
     __tablename__ = "team_history"
     id = Column(Integer, primary_key=True, index=True)
-    previous_registration_id = Column(Integer, ForeignKey("teams_in_series.id"))
-    next_registration_id = Column(Integer, ForeignKey("teams_in_series.id"))
+    previous_registration_id = Column(Integer, ForeignKey("series_registrations.id"))  # Changed from teams_in_series
+    next_registration_id = Column(Integer, ForeignKey("series_registrations.id"))  # Changed from teams_in_series
     relation_type = Column(String, nullable=False)
     notes = Column(Text)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))
@@ -95,8 +93,8 @@ class Game(Base):
     round = Column(String)
     is_playoff = Column(Boolean, default=False)
     game_date = Column(Date, nullable=False)
-    team_1_id = Column(Integer, ForeignKey("teams_in_series.id"), nullable=False)
-    team_2_id = Column(Integer, ForeignKey("teams_in_series.id"), nullable=False)
+    team_1_id = Column(Integer, ForeignKey("series_registrations.id"), nullable=False)
+    team_2_id = Column(Integer, ForeignKey("series_registrations.id"), nullable=False)
     score_1_1 = Column(Integer, nullable=False)
     score_1_2 = Column(Integer, nullable=False)
     score_2_1 = Column(Integer, nullable=False)
@@ -105,6 +103,9 @@ class Game(Base):
     __table_args__ = (
         UniqueConstraint('series_id', 'game_date', 'team_1_id', 'team_2_id', 'round'),
     )
+    
+    team_1 = relationship("SeriesRegistration", foreign_keys=[team_1_id])
+    team_2 = relationship("SeriesRegistration", foreign_keys=[team_2_id])
 
 class SingleThrow(Base):
     __tablename__ = "single_throw"
@@ -124,39 +125,19 @@ class SingleRoundThrow(Base):
     throw_2 = Column(Integer, ForeignKey("single_throw.id"))
     throw_3 = Column(Integer, ForeignKey("single_throw.id"))
     throw_4 = Column(Integer, ForeignKey("single_throw.id"))
+    team_id = Column(Integer, ForeignKey("series_registrations.id"))
+    
+    team = relationship("SeriesRegistration")
 
 class RosterPlayersInSeries(Base):
     __tablename__ = 'roster_players_in_series'
-    
-    registration_id = Column(Integer, ForeignKey('teams_in_series.id'), primary_key=True)
+    registration_id = Column(Integer, ForeignKey('series_registrations.id'), primary_key=True)
     player_id = Column(Integer, ForeignKey('players.id'), primary_key=True)
     
-    team = relationship(
-        'TeamInSeries',
-        back_populates='roster_entries',
-        overlaps="players,teams",
-        foreign_keys=[registration_id]
-    )
-    player = relationship(
-        'Player',
-        back_populates='team_rosters',
-        overlaps="players,teams",
-        foreign_keys=[player_id]
-    )
+    registration = relationship('SeriesRegistration', back_populates='roster_entries')
+    player = relationship('Player', back_populates='roster_entries')
     
     def __str__(self):
-        return f"{self.team.team_name} - {self.player.name}"
-
-# Add relationship properties to TeamInSeries
-TeamInSeries.roster_entries = relationship(
-    'RosterPlayersInSeries',
-    back_populates='team',
-    overlaps="players,teams"
-)
-
-# Add relationship properties to Player
-Player.team_rosters = relationship(
-    'RosterPlayersInSeries',
-    back_populates='player',
-    overlaps="players,teams"
-)
+        team_name = self.registration.team_name if self.registration else "Unknown team"
+        player_name = self.player.name if self.player else "Unknown player"
+        return f"{team_name} - {player_name}"

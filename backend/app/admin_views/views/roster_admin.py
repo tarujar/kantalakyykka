@@ -1,9 +1,9 @@
 from flask_babel import lazy_gettext as _
 from wtforms import SelectField
 from flask_admin.model.form import InlineFormAdmin
-from app.utils.choices import get_team_choices_with_player_count, get_player_choices_for_form
+from app.utils.choices import get_team_choices_with_player_count, get_player_choices_for_form, get_registration_choices
 from .base import CustomModelView
-from app.models import db, RosterPlayersInSeries
+from app.models import db, RosterPlayersInSeries, SeriesRegistration
 
 class RosterAdmin(CustomModelView):
     column_list = ['registration_id', 'player_id']
@@ -16,30 +16,22 @@ class RosterAdmin(CustomModelView):
 
     def create_form(self):
         form = super().create_form()
-        # Keep the original grouped structure for the template
-        self._template_args['team_choices'] = get_team_choices_with_player_count()
+        registration_choices = get_registration_choices()
+        player_choices = [(str(id), name) for id, name in get_player_choices_for_form()]
         
-        # Flatten choices for form validation
-        choices = []
-        for _, team_list in get_team_choices_with_player_count():
-            choices.extend([(str(id), name) for id, name in team_list])
-        form.registration_id.choices = choices
-        form.player_id.choices = [(str(id), name) for id, name in get_player_choices_for_form()]
+        if not player_choices:
+            player_choices = [('', 'No players available')]
+            
+        form.registration_id.choices = registration_choices
+        form.player_id.choices = player_choices
         form.registration_id.coerce = str
         form.player_id.coerce = str
         return form
 
     def edit_form(self, obj):
         form = super().edit_form(obj)
-        # Keep the original grouped structure for the template
-        self._template_args['team_choices'] = get_team_choices_with_player_count()
-        
-        # Flatten choices for form validation
-        choices = []
-        for _, team_list in get_team_choices_with_player_count():
-            choices.extend([(str(id), name) for id, name in team_list])
-        form.registration_id.choices = choices
-        form.player_id.choices = [(str(id), name) for id, name in get_player_choices_for_form()]
+        form.registration_id.choices = get_registration_choices()
+        form.player_id.choices = [(str(id), name) for id, name in get_player_choices_for_form()] or [('', 'No players available')]
         form.registration_id.coerce = str
         form.player_id.coerce = str
         if obj is not None:
@@ -47,16 +39,26 @@ class RosterAdmin(CustomModelView):
             form.player_id.data = str(obj.player_id)
         return form
 
-    def _team_formatter(view, context, model, name):
-        if model.team:
-            return f"{model.team.team_name} ({model.team.team_abbreviation}) - {model.team.series.name} {model.team.series.year}"
-        return ''
+    def _registration_formatter(view, context, model, name):
+        if not model or not model.registration:
+            return "Unknown Registration"
+        
+        reg = model.registration
+        series_info = f"({reg.series.name} {reg.series.year})" if reg.series else ""
+        
+        if reg.team_name:
+            return f"{reg.team_name} {series_info}"
+        elif reg.contact_player:
+            return f"{reg.contact_player.name} {series_info}"
+        return "Invalid Registration"
 
     def _player_formatter(view, context, model, name):
-        return model.player.name if model.player else ''
+        if not model or not model.player:
+            return "Unknown Player"
+        return model.player.name
 
     column_formatters = {
-        'registration_id': _team_formatter,
+        'registration_id': _registration_formatter,
         'player_id': _player_formatter
     }
 
@@ -71,8 +73,17 @@ class RosterAdmin(CustomModelView):
     can_export = True
     
     # Add these to help with error handling
-    column_searchable_list = ['player.name', 'team.team_name']
-    column_filters = ['registration_id', 'player_id']
+    column_searchable_list = [
+        'registration.team_name',
+        'registration.contact_player.name',
+        'player.name'
+    ]
+    column_filters = [
+        'registration_id',
+        'player_id',
+        'registration.team_name',
+        'registration.contact_player.name'
+    ]
 
     # Add these to help with error handling
     create_template = 'admin/roster_select.html'
@@ -93,6 +104,3 @@ class RosterAdmin(CustomModelView):
         model.registration_id = int(form.registration_id.data)
         model.player_id = int(form.player_id.data)
         return super().on_model_change(form, model, is_created)
-
-    column_searchable_list = ['player.name', 'team.team_name']
-    column_filters = ['registration_id', 'player_id']

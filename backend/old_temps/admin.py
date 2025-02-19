@@ -10,7 +10,7 @@ from database.database import SessionLocal
 from redis import Redis
 from app.models import User
 from app.admin_models import (
-    UserAdmin, GameTypeAdmin, PlayerAdmin, SeriesAdmin, TeamInSeriesAdmin,
+    UserAdmin, GameTypeAdmin, PlayerAdmin, SeriesAdmin, SeriesRegistrationAdmin,
     TeamHistoryAdmin, GameAdmin, SingleThrowAdmin, SingleRoundThrowAdmin, Home
 )
 from fastapi.templating import Jinja2Templates
@@ -80,7 +80,7 @@ async def init_admin(app: FastAPI):
     admin_app.register(GameTypeAdmin)
     admin_app.register(PlayerAdmin)
     admin_app.register(SeriesAdmin)
-    admin_app.register(TeamInSeriesAdmin)
+    admin_app.register(SeriesRegistrationAdmin)
     admin_app.register(TeamHistoryAdmin)
     admin_app.register(GameAdmin)
     admin_app.register(SingleThrowAdmin)

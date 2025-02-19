@@ -50,10 +50,11 @@ app.logger.info('Application startup')
 
 
 try:
-    from app.models.models import User, Player, GameType, Series, TeamInSeries, TeamHistory, Game, SingleThrow, SingleRoundThrow, RosterPlayersInSeries
+    from app.models.models import User, Player, GameType, Series, SeriesRegistration, TeamHistory, Game, SingleThrow, SingleRoundThrow, RosterPlayersInSeries
     from app.admin_views import (
         UserAdmin, PlayerAdmin, GameTypeAdmin, SeriesAdmin, 
-        TeamInSeriesAdmin, TeamHistoryAdmin, GameAdmin, RosterAdmin
+        SeriesRegistrationAdmin, 
+        TeamHistoryAdmin, GameAdmin, RosterAdmin
     )
     from app.utils import custom_gettext
     from app.admin_views.views.game_score_sheet_view import GameScoreSheetAdmin
@@ -68,7 +69,7 @@ try:
     admin.add_view(UserAdmin(User, db.session, name=_('user'), category='yleinen'))
     admin.add_view(PlayerAdmin(Player, db.session, name=_('player'), category='tiimit'))
     admin.add_view(RosterAdmin(RosterPlayersInSeries, db.session, name=_('team_roster'), category='tiimit'))
-    admin.add_view(TeamInSeriesAdmin(TeamInSeries, db.session, name=_('team_in_series'), category='sarjat'))
+    admin.add_view(SeriesRegistrationAdmin(SeriesRegistration, db.session, name=_('registration'), category='sarjat'))
     admin.add_view(TeamHistoryAdmin(TeamHistory, db.session, name=_('team_history'), category='tiimit'))
     admin.add_view(GameTypeAdmin(GameType, db.session, name=_('game_type'), category='yleinen'))
     admin.add_view(SeriesAdmin(Series, db.session, name=_('series'), category='sarjat'))

@@ -1,13 +1,13 @@
 import logging
 from sqlalchemy.orm import Session
-from app.models.models import RosterPlayersInSeries, Player, TeamInSeries
+from app.models.models import RosterPlayersInSeries, Player, SeriesRegistration
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from typing import List, Dict
 from datetime import datetime
-from app.models.models import Series as SeriesModel, TeamInSeries as TeamInSeriesModel
-from ..models.schemas import SeriesCreate, TeamInSeries
+from app.models.models import Series as SeriesModel, SeriesRegistration as SeriesRegistrationModel
+from ..models.schemas import SeriesCreate, SeriesRegistration
 
 class SeriesService:
     def __init__(self):
@@ -27,7 +27,7 @@ class SeriesService:
             self.logger.debug(f"Adding player {player_id} to team {team_id}")
             
             # Check if player and team exist
-            team = session.query(TeamInSeries).get(team_id)
+            team = session.query(SeriesRegistration).get(team_id)
             player = session.query(Player).get(player_id)
             
             if not team or not player:
@@ -116,8 +116,8 @@ async def list_series(db: AsyncSession) -> List[SeriesModel]:
     result = await db.execute(select(SeriesModel))
     return result.scalars().all()
 
-async def add_team_to_series(db: AsyncSession, series_id: int, team: TeamInSeries) -> TeamInSeriesModel:
-    db_team = TeamInSeriesModel(series_id=series_id, **team.model_dump())
+async def add_team_to_series(db: AsyncSession, series_id: int, team: SeriesRegistration) -> SeriesRegistrationModel:
+    db_team = SeriesRegistrationModel(series_id=series_id, **team.model_dump())
     db.add(db_team)
     await db.commit()
     await db.refresh(db_team)

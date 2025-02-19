@@ -52,8 +52,17 @@ msgstr "Luotu"
 msgid "name"
 msgstr "Nimi"
 
-msgid "max_players"
-msgstr "Maksimi Pelaajat"
+msgid "throw_round_amount"
+msgstr "Heittokierrokset erässä (Montako kertaa heittäjä käy kentällä?)"
+
+msgid "team_player_amount"
+msgstr "Maksimi Pelaajat joukkueessa"
+
+msgid "team_throws_in_set"
+msgstr "Yhden joukkueen heitot erässä"
+
+msgid "game_player_amount"
+msgstr "Maksimi Pelaajat pelissä"
 
 msgid "season_type"
 msgstr "Kausityyppi"

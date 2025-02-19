@@ -8,17 +8,21 @@ import logging
 
 class GameTypeAdmin(CustomModelView):
     form_overrides = {
-        'max_players': IntegerField,
+        'team_player_amount': IntegerField,
+        'game_player_amount': IntegerField,
+        'team_throws_in_set': IntegerField,
         'throw_round_amount': IntegerField 
     }
     column_labels = {
         'name': _('game_type'),
-        'max_players': _('max_players'),
+        'team_player_amount': _('team_player_amount'),
+        'game_player_amount': _('game_player_amount'),
+        'team_throws_in_set': _('team_throws_in_set'),
         'throw_round_amount': _('throw_round_amount'),
         'created_at': _('created_at')
     }
     form_labels = column_labels
-    form_columns = ['name', 'max_players', 'throw_round_amount', 'created_at'] 
+    form_columns = ['name', 'team_player_amount','game_player_amount','team_throws_in_set', 'throw_round_amount', 'created_at'] 
 
 class GameAdmin(CustomModelView):
     list_template = 'admin/game_form.html'

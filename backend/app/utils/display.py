@@ -1,4 +1,4 @@
-from app.models.models import Player, Series, TeamInSeries
+from app.models import SeriesRegistration, Series, Player  # Changed from SeriesRegistration
 from flask_babel import gettext as _
 from app.main import app
 import logging
@@ -19,10 +19,12 @@ def format_series_name(session, series_id):
 
 def format_team_name(session, team_id):
     """Format team name for display in admin views"""
-    if team_id:
-        team = session.query(TeamInSeries).get(team_id)
-        return f"{team.team_name} ({team.team_abbreviation})" if team else str(team_id)
-    return ''
+    if not team_id:
+        return ""
+    reg = session.query(SeriesRegistration).get(team_id)  # Changed from TeamInSeries
+    if reg:
+        return f"{reg.team_name} ({reg.team_abbreviation})" if reg.team_name else reg.contact_player.name
+    return ""
 
 def format_player_contact_info(session, player_id):
     """Format player name and email for display in admin views"""

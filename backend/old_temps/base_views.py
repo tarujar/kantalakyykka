@@ -102,15 +102,17 @@ class PlayerAdmin(CustomModelView):
 
 class GameTypeAdmin(CustomModelView):
     form_overrides = {
-        'max_players': IntegerField
+        'team_player_amount': IntegerField
     }
     column_labels = {
         'name': _('game_type'),
-        'max_players': _('max_players'),
+        'team_player_amount': _('team_player_amount'),
+        'team_throws_in_set': _('team_throws_in_set'),
+        'game_player_amount': _('game_player_amount'),
         'created_at': _('created_at')
     }
     form_labels = column_labels
-    form_columns = ['name', 'max_players', 'created_at']
+    form_columns = ['name', 'team_player_amount','team_throws_in_set','game_player_amount', 'created_at']
 
 class SeriesAdmin(CustomModelView):
     form_columns = ['name', 'season_type', 'year', 'status', 'registration_open', 'game_type_id']

@@ -1,25 +1,25 @@
 from datetime import datetime, timezone
-from app.models.models import GameType, Player, Game, Series, TeamInSeries
-from app.models import GameTypeCreate, SeriesCreate, TeamInSeries
+from app.models.models import GameType, Player, Game, Series, SeriesRegistration
+from app.models import GameTypeCreate, SeriesCreate, SeriesRegistration
 
 mock_game_types = [
     {
         "id": 1,
         "name": "Henkkari",
-        "max_players": 1,
+        "team_player_amount": 1,
         "created_at": datetime.now(timezone.utc).isoformat()
     },
     {
         "id": 2,
         "name": "Pari",
-        "max_players": 2,
+        "team_player_amount": 2,
         "created_at": datetime.now(timezone.utc).isoformat()
     },
-    {"id": 3, "name": "WCOK", "max_players": 4},
-    {"id": 4, "name": "Joukkue", "max_players": 8}
+    {"id": 3, "name": "WCOK", "team_player_amount": 4},
+    {"id": 4, "name": "Joukkue", "team_player_amount": 8}
 ]
 
-mock_game_type_single = {"id": 1, "name": "Henkkari", "max_players": 1}
+mock_game_type_single = {"id": 1, "name": "Henkkari", "team_player_amount": 1}
 
 mock_players = [
     {"id": 1, "name": "Matti Meikalainen", "email": "matti@example.com"},
@@ -66,7 +66,7 @@ mock_series = [
 ]
 
 mock_teams_in_series = [
-    TeamInSeries(
+    SeriesRegistration(
         series_id=1,
         team_name="Team A",
         team_abbreviation="TA",
@@ -74,9 +74,9 @@ mock_teams_in_series = [
     )
 ]
 
-mock_new_game_type = {"name": "New Game Type", "max_players": 4}
-mock_invalid_game_type = {"name": "", "max_players": -1}
-mock_updated_game_type = {"name": "Updated Game Type", "max_players": 5}
+mock_new_game_type = {"name": "New Game Type", "team_player_amount": 4}
+mock_invalid_game_type = {"name": "", "team_player_amount": -1}
+mock_updated_game_type = {"name": "Updated Game Type", "team_player_amount": 5}
 
 mock_new_player = {"name": "New Player", "email": "newplayer@example.com"}
 mock_invalid_player = {"name": "", "email": "invalid-email"}

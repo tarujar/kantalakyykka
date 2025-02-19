@@ -1,5 +1,6 @@
 from flask_babel import lazy_gettext as _, gettext
 from flask import flash
+from app.models import db, SeriesRegistration 
 import re
 
 def get_constraint_name(error_msg):
@@ -32,10 +33,22 @@ def handle_data_error(exc):
     return False
 
 def validate_team_form(form):
+    # Update validation to use db.session instead of direct query
+    existing = db.session.query(SeriesRegistration).filter_by(
+        series_id=form.series_id.data,
+        team_name=form.team_name.data
+    ).first()
+
+    if existing:
+        flash(_('team_name_already_exists'), 'error')
+        return False
+
     if form.team_abbreviation.data and len(form.team_abbreviation.data) > 10:
         flash(_('team_abbreviation_length_error'), 'error')
         return False
+
     if form.team_name.data and len(form.team_name.data) > 100:
         flash(_('team_name_length_error'), 'error')
         return False
+
     return True

@@ -1,5 +1,5 @@
 from app.main import db, app
-from app.models.models import GameType, Series, Player, TeamInSeries, RosterPlayersInSeries
+from app.models.models import GameType, Series, Player, SeriesRegistration, RosterPlayersInSeries
 from flask import current_app
 import logging
 
@@ -31,34 +31,32 @@ def get_player_choices_for_form():
 
 def get_team_choices_by_series():
     with current_app.app_context():
-        # Get all teams with their series, ordered appropriately
-        teams = db.session.query(TeamInSeries, Series)\
-                  .join(Series, TeamInSeries.series_id == Series.id)\
-                  .order_by(Series.year.desc(), Series.name, TeamInSeries.team_name)\
+        # Get all registrations with their series, ordered appropriately
+        registrations = db.session.query(SeriesRegistration, Series)\
+                  .join(Series, SeriesRegistration.series_id == Series.id)\
+                  .filter(SeriesRegistration.team_name.isnot(None))\
+                  .order_by(Series.year.desc(), Series.name, SeriesRegistration.team_name)\
                   .all()
         
         # Group teams by series
         series_groups = {}
-        for team, series in teams:
+        for reg, series in registrations:
             series_key = f"{series.name} {series.year}"
             if series_key not in series_groups:
                 series_groups[series_key] = []
             series_groups[series_key].append(
-                (str(team.id), f"{team.team_name} ({team.team_abbreviation})")
+                (str(reg.id), f"{reg.team_name} ({reg.team_abbreviation})")
             )
         
-        # Convert to list of tuples for optgroup structure
-        return [
-            (series_name, team_choices)
-            for series_name, team_choices in series_groups.items()
-        ]
+        return [(series_name, team_choices)
+                for series_name, team_choices in series_groups.items()]
 
 def get_flat_team_choices():
     with current_app.app_context():
         # Get all teams with their series, ordered appropriately
-        teams = db.session.query(TeamInSeries, Series)\
-                  .join(Series, TeamInSeries.series_id == Series.id)\
-                  .order_by(Series.year.desc(), Series.name, TeamInSeries.team_name)\
+        teams = db.session.query(SeriesRegistration, Series)\
+                  .join(Series, SeriesRegistration.series_id == Series.id)\
+                  .order_by(Series.year.desc(), Series.name, SeriesRegistration.team_name)\
                   .all()
         
         # Create a flat list of tuples for team choices
@@ -71,16 +69,31 @@ def get_flat_team_choices():
 
 def get_team_choices_with_player_count():
     with current_app.app_context():
-        team_choices = get_team_choices_by_series()
-        choices_with_count = []
-        for series_name, team_list in team_choices:
-            updated_team_list = []
-            for team_id, team_name in team_list:
-                player_count = db.session.query(RosterPlayersInSeries).filter_by(registration_id=team_id).count()
-                max_players = db.session.query(TeamInSeries).filter_by(id=team_id).first().series.game_type.max_players
-                updated_team_list.append((team_id, f"{team_name} ({player_count}/{max_players})"))
-            choices_with_count.append((series_name, updated_team_list))
-        return choices_with_count
+        # Get all registrations grouped by series
+        registrations = db.session.query(SeriesRegistration)\
+            .join(Series)\
+            .filter(SeriesRegistration.team_name.isnot(None))\
+            .order_by(Series.year.desc(), Series.name, SeriesRegistration.team_name)\
+            .all()
+
+        # Group by series
+        series_groups = {}
+        for reg in registrations:
+            series_key = f"{reg.series.name} {reg.series.year}"
+            if series_key not in series_groups:
+                series_groups[series_key] = []
+            
+            # Get player count for this registration
+            player_count = db.session.query(RosterPlayersInSeries)\
+                .filter_by(registration_id=reg.id).count()
+            # Get team_player_amount from the series game type
+            team_player_amount = reg.series.game_type.team_player_amount
+            
+            series_groups[series_key].append(
+                (str(reg.id), f"{reg.team_name} ({player_count}/{team_player_amount})")
+            )
+
+        return [(series_name, team_list) for series_name, team_list in series_groups.items()]
 
 def get_team_choices_with_context():
     with current_app.app_context():
@@ -107,3 +120,33 @@ def get_team_players(team_id, session=None):
     except Exception as e:
         logging.error(f"Error getting team players: {e}")
         return []
+
+def get_registration_choices():
+    """Returns a list of tuples containing (id, label) for all registrations"""
+    with current_app.app_context():
+        try:
+            registrations = db.session.query(SeriesRegistration)\
+                .join(Series)\
+                .order_by(Series.year.desc(), Series.name, SeriesRegistration.team_name)\
+                .all()
+            
+            if not registrations:
+                return [('', 'No registrations available')]
+            
+            choices = []
+            for reg in registrations:
+                try:
+                    series_info = f"({reg.series.name} {reg.series.year})"
+                    if reg.team_name:  # Team registration
+                        label = f"{reg.team_name} {series_info}"
+                    else:  # Personal registration
+                        label = f"{reg.contact_player.name} {series_info}"
+                    choices.append((str(reg.id), label))
+                except Exception as e:
+                    logging.error(f"Error processing registration {reg.id}: {e}")
+                    continue
+            
+            return choices if choices else [('', 'No valid registrations found')]
+        except Exception as e:
+            logging.error(f"Database error in get_registration_choices: {e}")
+            return [('', 'Error loading registrations')]
