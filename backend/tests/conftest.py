@@ -27,7 +27,7 @@ async def async_session():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def test_client():
     return TestClient(app)
 

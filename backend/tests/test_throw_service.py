@@ -1,13 +1,14 @@
 import pytest
+import pytest_asyncio
 from app.services.throw_service import ThrowService
 from app.models.models import ThrowType, SingleThrow
 from unittest.mock import Mock, patch
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def throw_service():
     return ThrowService()
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def mock_session():
     session = Mock()
     session.add = Mock()

@@ -1,6 +1,7 @@
 import unittest
 from app.utils.throw_input import ThrowInputField
 from app.models.models import ThrowType
+import pytest_asyncio
 
 class MockThrow:
     def __init__(self, throw_type, throw_score):
@@ -41,7 +42,7 @@ from wtforms.validators import ValidationError
 from app.utils.throw_input import ThrowInputField
 from app.models.models import ThrowType, SingleThrow
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def field():
     class TestForm(Form):
         test_field = ThrowInputField('Test')

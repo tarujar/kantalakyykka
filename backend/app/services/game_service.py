@@ -125,10 +125,10 @@ async def validate_game_players(db: AsyncSession, game_type_id: int, players: li
     if not game_type:
         raise HTTPException(status_code=400, detail="Invalid game type")
     
-    team_player_amount = game_type.team_player_amount
-    if len(players) > team_player_amount:
+    max_players = game_type.max_players
+    if len(players) > max_players:
         raise HTTPException(status_code=400, detail="Too many players for this game type")
-    if len(players) < team_player_amount:
+    if len(players) < max_players:
         raise HTTPException(status_code=400, detail="Not enough players for this game type")
 
 async def update_game(db: AsyncSession, game_id: int, game: GameCreate) -> Game:

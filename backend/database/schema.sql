@@ -114,6 +114,30 @@ CREATE TABLE games (
     UNIQUE (series_id, game_date, team_1_id, team_2_id, round)
 );
 
+-- First null out any existing references
+UPDATE games SET team_1_id = NULL, team_2_id = NULL;
+
+-- Drop the existing foreign key constraints
+ALTER TABLE games 
+    DROP CONSTRAINT IF EXISTS games_team_1_id_fkey CASCADE,
+    DROP CONSTRAINT IF EXISTS games_team_2_id_fkey CASCADE;
+
+-- Add the correct foreign key constraints
+ALTER TABLE games 
+    ADD CONSTRAINT games_team_1_id_fkey 
+        FOREIGN KEY (team_1_id) 
+        REFERENCES series_registrations(id)
+        ON DELETE RESTRICT,
+    ADD CONSTRAINT games_team_2_id_fkey 
+        FOREIGN KEY (team_2_id) 
+        REFERENCES series_registrations(id)
+        ON DELETE RESTRICT;
+
+-- Make games.team_1_id and team_2_id NOT NULL again
+ALTER TABLE games 
+    ALTER COLUMN team_1_id SET NOT NULL,
+    ALTER COLUMN team_2_id SET NOT NULL;
+
 -- Joukkueiden heittotulokset
 CREATE TABLE single_throw (
     id SERIAL PRIMARY KEY,
@@ -158,25 +182,38 @@ CREATE OR REPLACE FUNCTION validate_team_player_count()
 RETURNS TRIGGER AS $$
 DECLARE
     v_team_player_amount INTEGER;
-    v_active_players INTEGER;
     v_game_type_name VARCHAR(100);
+    v_series_id INTEGER;
 BEGIN
-    -- Hae pelityypin maksimipelaajamäärä ja nimi
-    SELECT gt.team_player_amount, gt.name INTO v_team_player_amount, v_game_type_name
+    -- Get the series_id for this registration
+    SELECT series_id INTO v_series_id
+    FROM series_registrations
+    WHERE id = NEW.registration_id;
+
+    -- Get the game type details from the series
+    SELECT gt.team_player_amount, gt.name 
+    INTO v_team_player_amount, v_game_type_name
     FROM game_types gt
     JOIN series s ON gt.id = s.game_type_id
-    JOIN series_registrations t ON s.id = t.series_id
-    WHERE t.id = NEW.registration_id;
+    WHERE s.id = v_series_id;
 
-    -- Lasketaan aktiivisten pelaajien määrä joukkueessa, mukaan lukien uusi pelaaja
-    SELECT COUNT(*) + 1 INTO v_active_players
-    FROM roster_players_in_series
-    WHERE registration_id = NEW.registration_id;
+    -- For personal leagues (team_player_amount = 1), don't allow roster additions
+    IF v_team_player_amount = 1 THEN
+        RAISE EXCEPTION 'Cannot add players to roster in personal leagues (game type: %)', 
+            v_game_type_name;
+    END IF;
 
-    -- Tarkista, ettei aktiivisten pelaajien määrä ylitä rajaa
-    IF v_active_players > v_team_player_amount THEN
-        RAISE EXCEPTION 'Player limit exceeded: Only % players allowed for the game type % (% players currently registered)',
-            v_team_player_amount, v_game_type_name, v_active_players - 1;
+    -- For team leagues, validate the roster size
+    IF v_team_player_amount > 1 THEN
+        -- Check current roster size
+        IF (
+            SELECT COUNT(*) 
+            FROM roster_players_in_series 
+            WHERE registration_id = NEW.registration_id
+        ) >= v_team_player_amount THEN
+            RAISE EXCEPTION 'Player limit exceeded: Maximum % players allowed for game type %',
+                v_team_player_amount, v_game_type_name;
+        END IF;
     END IF;
 
     RETURN NEW;
@@ -189,34 +226,65 @@ BEFORE INSERT OR UPDATE ON roster_players_in_series
 FOR EACH ROW
 EXECUTE FUNCTION validate_team_player_count();
 
-CREATE OR REPLACE FUNCTION validate_game_teams()
+-- Drop the old triggers first
+DROP TRIGGER IF EXISTS validate_game_teams_trigger ON games;
+DROP TRIGGER IF EXISTS validate_game_participants_trigger ON games;
+
+-- Create consolidated game validation function
+CREATE OR REPLACE FUNCTION validate_game()
 RETURNS TRIGGER AS $$
 DECLARE
-    team_1_series_id INTEGER;
-    team_2_series_id INTEGER;
-    is_cup BOOLEAN;
+    v_game_series_id INTEGER;
+    v_team1_series_id INTEGER;
+    v_team2_series_id INTEGER;
+    v_is_cup BOOLEAN;
+    v_game_series_year INTEGER;
+    v_team1_series_year INTEGER;
+    v_team2_series_year INTEGER;
 BEGIN
-    -- Tarkista, onko sarja cup-sarja
-    SELECT is_cup_league INTO is_cup FROM series WHERE id = NEW.series_id;
+    -- Get the game's series info
+    SELECT s.id, s.is_cup_league, s.year 
+    INTO v_game_series_id, v_is_cup, v_game_series_year
+    FROM series s
+    WHERE s.id = NEW.series_id;
 
-    -- Hae joukkueiden alkuperäiset sarjat
-    SELECT series_id INTO team_1_series_id FROM series_registrations WHERE id = NEW.team_1_id;
-    SELECT series_id INTO team_2_series_id FROM series_registrations WHERE id = NEW.team_2_id;
+    -- Get team series info
+    SELECT s.id, s.year INTO v_team1_series_id, v_team1_series_year
+    FROM series_registrations sr
+    JOIN series s ON sr.series_id = s.id
+    WHERE sr.id = NEW.team_1_id;
 
-    -- Normaalissa sarjassa joukkueiden täytyy olla samasta sarjasta
-    IF NOT is_cup AND team_1_series_id != team_2_series_id THEN
-        RAISE EXCEPTION 'In regular series games, both teams must belong to the same series';
+    SELECT s.id, s.year INTO v_team2_series_id, v_team2_series_year
+    FROM series_registrations sr
+    JOIN series s ON sr.series_id = s.id
+    WHERE sr.id = NEW.team_2_id;
+
+    -- Basic check that teams are different
+    IF NEW.team_1_id = NEW.team_2_id THEN
+        RAISE EXCEPTION 'Team cannot play against itself';
+    END IF;
+
+    -- Check years match for all participants
+    IF v_team1_series_year != v_game_series_year OR v_team2_series_year != v_game_series_year THEN
+        RAISE EXCEPTION 'Teams must be from the same year as the game series (year: %)', v_game_series_year;
+    END IF;
+
+    -- For non-cup series, teams must be from the same series as the game
+    IF NOT v_is_cup THEN
+        IF v_team1_series_id != NEW.series_id OR v_team2_series_id != NEW.series_id THEN
+            RAISE EXCEPTION 'Teams must be from the same series as the game in non-cup series';
+        END IF;
     END IF;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Triggerin asettaminen games-tauluun
-CREATE TRIGGER validate_game_teams_trigger
+-- Create single trigger for game validation
+CREATE TRIGGER validate_game_trigger
 BEFORE INSERT OR UPDATE ON games
 FOR EACH ROW
-EXECUTE FUNCTION validate_game_teams();
+EXECUTE FUNCTION validate_game();
 
 -- Create a view that combines both team and personal registrations
 CREATE OR REPLACE VIEW series_participants AS
@@ -299,52 +367,3 @@ CREATE TRIGGER validate_registration_type_trigger
 BEFORE INSERT OR UPDATE ON series_registrations
 FOR EACH ROW
 EXECUTE FUNCTION validate_registration_type();
-
--- Add new validation function for games
-CREATE OR REPLACE FUNCTION validate_game_participants()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_team_player_amount INTEGER;
-BEGIN
-    -- Get the team_player_amount for this game's series
-    SELECT gt.team_player_amount INTO v_team_player_amount
-    FROM series s
-    JOIN game_types gt ON s.game_type_id = gt.id
-    WHERE s.id = NEW.series_id;
-
-    -- Basic check that teams are different
-    IF NEW.team_1_id = NEW.team_2_id THEN
-        RAISE EXCEPTION 'Team cannot play against itself';
-    END IF;
-
-    -- Additional validation based on league type could be added here
-    -- For example, checking that both teams are of the same type (both personal or both team)
-    IF v_team_player_amount = 1 THEN
-        -- Personal league specific validations
-        IF EXISTS (
-            SELECT 1 FROM series_registrations
-            WHERE id IN (NEW.team_1_id, NEW.team_2_id)
-            AND team_name IS NOT NULL
-        ) THEN
-            RAISE EXCEPTION 'Personal league games can only have individual players';
-        END IF;
-    ELSE
-        -- Team league specific validations
-        IF EXISTS (
-            SELECT 1 FROM series_registrations
-            WHERE id IN (NEW.team_1_id, NEW.team_2_id)
-            AND team_name IS NULL
-        ) THEN
-            RAISE EXCEPTION 'Team league games can only have teams';
-        END IF;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create trigger for game participant validation
-CREATE TRIGGER validate_game_participants_trigger
-BEFORE INSERT OR UPDATE ON games
-FOR EACH ROW
-EXECUTE FUNCTION validate_game_participants();

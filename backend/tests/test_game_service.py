@@ -1,12 +1,13 @@
 import pytest
 from app.services.game_service import GameService
 from unittest.mock import Mock, patch, call
+import pytest_asyncio
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def game_service():
     return GameService()
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def mock_session():
     session = Mock()
     session.query = Mock()
@@ -14,7 +15,7 @@ def mock_session():
     session.rollback = Mock()
     return session
 
-@pytest.fixture
+@pytest_asyncio.fixture
 def mock_form():
     form = Mock()
     # Create mock team throws

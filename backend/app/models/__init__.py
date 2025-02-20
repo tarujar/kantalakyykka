@@ -12,7 +12,8 @@ from .models import (
     Game,
     SingleThrow,
     SingleRoundThrow,
-    RosterPlayersInSeries
+    RosterPlayersInSeries,
+    Base
 )
 
 from .schemas import (
