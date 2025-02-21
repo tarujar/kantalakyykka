@@ -150,3 +150,55 @@ def get_registration_choices():
         except Exception as e:
             logging.error(f"Database error in get_registration_choices: {e}")
             return [('', 'Error loading registrations')]
+
+def get_series_participant_choices(series_id: int):
+    """Get participant choices (teams or players) for a specific series.
+    
+    Args:
+        series_id: ID of the series
+        
+    Returns:
+        List of tuples (id, name) for form choices
+    """
+    with current_app.app_context():
+        try:
+            # Get series game type info
+            series_query = db.session.query(Series)\
+                .join(GameType)\
+                .filter(Series.id == series_id)\
+                .first()
+            
+            if not series_query:
+                return []
+
+            # For personal leagues (team_player_amount = 1)
+            if series_query.game_type.team_player_amount == 1:
+                participants = db.session.query(
+                    SeriesRegistration.id,
+                    Player.name
+                ).join(
+                    Player,
+                    SeriesRegistration.contact_player_id == Player.id
+                ).filter(
+                    SeriesRegistration.series_id == series_id
+                ).order_by(
+                    Player.name
+                ).all()
+            else:
+                # For team leagues
+                participants = db.session.query(
+                    SeriesRegistration.id,
+                    SeriesRegistration.team_name
+                ).filter(
+                    SeriesRegistration.series_id == series_id,
+                    SeriesRegistration.team_name.isnot(None)
+                ).order_by(
+                    SeriesRegistration.team_name
+                ).all()
+
+            return [(str(p.id), p.name if hasattr(p, 'name') else p.team_name) 
+                    for p in participants]
+            
+        except Exception as e:
+            logging.error(f"Error getting series participant choices: {e}")
+            return []

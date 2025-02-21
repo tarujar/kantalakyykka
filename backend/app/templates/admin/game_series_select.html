@@ -1,0 +1,23 @@
+{% extends 'admin/model/create.html' %}
+
+{% block body %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <h2>Select Series for New Game</h2>
+            <form method="GET" action="{{ url_for('game.create_view') }}">
+                <div class="form-group">
+                    <label for="series_id">Series</label>
+                    <select class="form-control" id="series_id" name="series_id" required>
+                        <option value="">-- Select Series --</option>
+                        {% for id, name, year in series_choices %}
+                        <option value="{{ id }}">{{ name }} ({{ year }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Continue to Game Creation</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

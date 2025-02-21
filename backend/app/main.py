@@ -74,7 +74,7 @@ try:
     admin.add_view(GameTypeAdmin(GameType, db.session, name=_('game_type'), category='yleinen'))
     admin.add_view(SeriesAdmin(Series, db.session, name=_('series'), category='sarjat'))
 
-    admin.add_view(GameAdmin(Game, db.session, name=_('game') ))
+    admin.add_view(GameAdmin(Game, db.session, name=_('game'),endpoint='game' ))
     admin.add_view(GameScoreSheetAdmin(
         Game, 
         db.session, 

@@ -1,8 +1,10 @@
 from flask_babel import lazy_gettext as _
 from wtforms import SelectField, IntegerField, BooleanField, StringField, DateField
+from wtforms.validators import DataRequired
+from flask_admin.base import expose
 from .base import CustomModelView
-from app.utils.choices import get_series_choices, get_team_choices_by_series
-from flask import redirect, url_for, request
+from app.utils.choices import get_series_choices, get_team_choices_by_series, get_series_participant_choices
+from flask import redirect, url_for, request, render_template
 from app.utils.display import format_team_name, format_series_name, format_end_game_score
 import logging
 
@@ -25,46 +27,71 @@ class GameTypeAdmin(CustomModelView):
     form_columns = ['name', 'team_player_amount','game_player_amount','team_throws_in_set', 'throw_round_amount', 'created_at'] 
 
 class GameAdmin(CustomModelView):
-    list_template = 'admin/game_form.html'
-    
+    list_template = 'admin/game_list.html'
+    create_template = 'admin/model/create.html'
     # Add list row action permissions
     can_view_details = True
     can_edit = True
     can_delete = True
 
+    @expose('/new/', methods=('GET', 'POST'))
+    def create_view(self):
+        # For GET requests, check if we need to show series selection
+        if request.method == 'GET' and not request.args.get('series_id'):
+            series_choices, _ = get_series_choices()
+            # Pass the admin_view to the template context
+            return self.render('admin/game_series_select.html', 
+                series_choices=series_choices,
+                admin_view=self)
+        return super().create_view()
+
     def create_form(self, obj=None):
         form = super().create_form(obj)
         series_choices, _ = get_series_choices()
-        team_choices = get_team_choices_by_series()
+        form.series_id.choices = [('', '-- Select Series --')] + [
+            (str(id), f"{name} ({year})") for id, name, year in series_choices
+        ]
         
-        # Set choices for series
-        form.series_id.choices = [(str(id), f"{name} ({year})") for id, name, year in series_choices]
-        
-        # Set choices for teams
-        team_list = []
-        for series_name, teams in team_choices:
-            team_list.extend([(str(id), f"{name} ({series_name})") for id, name in teams])
-        
-        form.team_1_id.choices = team_list
-        form.team_2_id.choices = team_list
+        # Handle series_id from URL
+        series_id = request.args.get('series_id')
+        if series_id:
+            form.series_id.data = series_id
+            team_choices = get_series_participant_choices(int(series_id))
+            form.team_1_id.choices = [('', '-- Select Team --')] + team_choices
+            form.team_2_id.choices = [('', '-- Select Team --')] + team_choices
+        else:
+            form.team_1_id.choices = [('', '-- Select Team --')]
+            form.team_2_id.choices = [('', '-- Select Team --')]
         
         return form
 
     def edit_form(self, obj):
         form = super().edit_form(obj)
+        
+        # Make series_id field read-only in edit mode
+        form.series_id.render_kw = {'readonly': True, 'disabled': 'disabled'}
         series_choices, _ = get_series_choices()
-        team_choices = get_team_choices_by_series()
+
+        # Set choices for series with a default empty option
+        form.series_id.choices = [('', '-- Select Series --')] + [
+            (str(id), f"{name} ({year})") for id, name, year in series_choices
+        ]
         
-        # Set choices for series
-        form.series_id.choices = [(str(id), f"{name} ({year})") for id, name, year in series_choices]
+        # Set empty choices with default option
+        empty_choice = [('', '-- Select Team --')]
         
-        # Set choices for teams
-        team_list = []
-        for series_name, teams in team_choices:
-            team_list.extend([(str(id), f"{name} ({series_name})") for id, name in teams])
-        
-        form.team_1_id.choices = team_list
-        form.team_2_id.choices = team_list
+        # Get team choices based on the game's series
+        if obj and obj.series_id:
+            team_choices = get_series_participant_choices(obj.series_id)
+            if team_choices:
+                form.team_1_id.choices = empty_choice + team_choices
+                form.team_2_id.choices = empty_choice + team_choices
+            else:
+                form.team_1_id.choices = empty_choice
+                form.team_2_id.choices = empty_choice
+        else:
+            form.team_1_id.choices = empty_choice
+            form.team_2_id.choices = empty_choice
         
         return form
 
@@ -80,9 +107,9 @@ class GameAdmin(CustomModelView):
 
     def __init__(self, model, session, **kwargs):
         self.form_extra_fields = {
-            'series_id': SelectField('series', coerce=str),
-            'team_1_id': SelectField('team_1', coerce=str),
-            'team_2_id': SelectField('team_2', coerce=str)
+            'series_id': SelectField('series', coerce=str, render_kw={'readonly': True,'disabled': 'disabled'}),
+            'team_1_id': SelectField('team_1', coerce=str, validators=[DataRequired(message='Please select team 1')]),
+            'team_2_id': SelectField('team_2', coerce=str, validators=[DataRequired(message='Please select team 2')])
         }
         super().__init__(model, session, **kwargs)
 
@@ -115,6 +142,7 @@ class GameAdmin(CustomModelView):
     form_labels = column_labels
     form_columns = ['series_id', 'round', 'is_playoff', 'game_date', 'team_1_id', 'team_2_id', 'score_1_1', 'score_1_2', 'score_2_1', 'score_2_2']
     column_list = form_columns + ['end_game_score','created_at']
+
 
 class SingleThrowAdmin(CustomModelView):
     column_labels = {
