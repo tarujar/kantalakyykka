@@ -13,7 +13,9 @@ class GameTypeAdmin(CustomModelView):
         'team_player_amount': IntegerField,
         'game_player_amount': IntegerField,
         'team_throws_in_set': IntegerField,
-        'throw_round_amount': IntegerField 
+        'throw_round_amount': IntegerField,
+        'kyykka_amount': IntegerField,
+
     }
     column_labels = {
         'name': _('game_type'),
@@ -21,10 +23,11 @@ class GameTypeAdmin(CustomModelView):
         'game_player_amount': _('game_player_amount'),
         'team_throws_in_set': _('team_throws_in_set'),
         'throw_round_amount': _('throw_round_amount'),
+        'kyykka_amount': _('kyykka_amount'),
         'created_at': _('created_at')
     }
     form_labels = column_labels
-    form_columns = ['name', 'team_player_amount','game_player_amount','team_throws_in_set', 'throw_round_amount', 'created_at'] 
+    form_columns = ['name', 'team_player_amount','game_player_amount','team_throws_in_set', 'throw_round_amount','kyykka_amount'] 
 
 class GameAdmin(CustomModelView):
     list_template = 'admin/game_list.html'
@@ -142,7 +145,6 @@ class GameAdmin(CustomModelView):
     form_labels = column_labels
     form_columns = ['series_id', 'round', 'is_playoff', 'game_date', 'team_1_id', 'team_2_id', 'score_1_1', 'score_1_2', 'score_2_1', 'score_2_2']
     column_list = form_columns + ['end_game_score','created_at']
-
 
 class SingleThrowAdmin(CustomModelView):
     column_labels = {

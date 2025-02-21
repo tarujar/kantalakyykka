@@ -13,6 +13,7 @@ class GameTypeCreate(BaseModel):
     team_player_amount: int
     team_throws_in_set: int
     game_player_amount: int
+    kyykka_amount: int
 
 class GameType(BaseModel):
     id: Optional[int]
@@ -20,6 +21,7 @@ class GameType(BaseModel):
     team_player_amount: int
     team_throws_in_set: int
     game_player_amount: int
+    kyykka_amount: int
 
     model_config = ConfigDict(from_attributes=True)
 

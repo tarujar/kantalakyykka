@@ -15,41 +15,68 @@ class GameService:
 
     def process_game_throws(self, game_id, form, session):
         """Process throws for a game"""
-        self.logger.debug(f"Processing throws for game {game_id}")
+        game = session.query(GameModel).get(game_id)
+        if not game:
+            raise ValueError("Game not found")
 
-        # Initial rollback to ensure clean state
-        session.rollback()
-        
         try:
-            # Update game scores first
-            game = session.query(GameModel).get(game_id)
-            if game:
-                game.score_1_1 = form.score_1_1.data
-                game.score_1_2 = form.score_1_2.data
-                game.score_2_1 = form.score_2_1.data
-                game.score_2_2 = form.score_2_2.data
+            # Update game scores
+            game.score_1_1 = form.score_1_1.data
+            game.score_1_2 = form.score_1_2.data
+            game.score_2_1 = form.score_2_1.data
+            game.score_2_2 = form.score_2_2.data
 
             # Get existing throws for mapping
-            existing_throws = session.query(SingleRoundThrow).filter_by(game_id=game_id).all()
-            existing_throws_map = {(t.game_set_index, t.throw_position, t.home_team): t for t in existing_throws}
-            
-            # Process throws for each team
-            for team_index, team_throws in enumerate([form.team_1_round_throws, form.team_2_round_throws]):
-                is_home_team = team_index == 0
-                for entry in team_throws:
-                    for round_num in [1, 2]:
-                        self._process_round_throws(session, game_id, entry, round_num, is_home_team, existing_throws_map)
-            
-            # Try to commit all changes
+            existing_throws = {
+                (t.game_set_index, t.throw_position, t.home_team): t 
+                for t in session.query(SingleRoundThrow).filter_by(game_id=game_id)
+            }
+
+            # Process throws for each team and set
+            for set_index in [1, 2]:
+                for throw_position in range(1, 6):  # 1-5 positions per set
+                    for is_home_team in [True, False]:
+                        team_data = form.team_1_throws if is_home_team else form.team_2_throws
+                        team_id = game.team_1_id if is_home_team else game.team_2_id
+                        
+                        # Get player data and throws based on form structure
+                        player_data = self._get_player_data(team_data, set_index, throw_position)
+                        if not player_data:
+                            continue
+                            
+                        existing_throw = existing_throws.get((set_index, throw_position, is_home_team))
+                        
+                        self.throw_service.save_round_throw(
+                            session,
+                            game_id=game_id,
+                            set_index=set_index,
+                            throw_position=throw_position,
+                            is_home_team=is_home_team,
+                            team_id=team_id,
+                            player_id=player_data.player_id.data,
+                            throws=[
+                                player_data.throw_1.data,
+                                player_data.throw_2.data,
+                                player_data.throw_3.data,
+                                player_data.throw_4.data
+                            ],
+                            existing_throw=existing_throw
+                        )
+
             session.commit()
-            self.logger.info(f"Successfully saved all throws for game {game_id}")
             return True
-            
+
         except Exception as e:
-            # Error rollback
-            self.logger.error(f"Error processing throws: {e}", exc_info=True)
             session.rollback()
             raise
+
+    def _get_player_data(self, team_data, set_index, throw_position):
+        """Helper method to get correct player data from form structure"""
+        try:
+            round_data = team_data[0][f'round_{set_index}']
+            return round_data[throw_position - 1]
+        except (IndexError, KeyError):
+            return None
 
     def _process_round_throws(self, session, game_id, entry, round_num, is_home_team, existing_throws_map):
         """Process throws for a single round"""
@@ -90,7 +117,7 @@ async def calculate_game_score(team_score: int, points_multiplier: int = 1) -> i
     return team_score * points_multiplier
 
 async def create_game(db: AsyncSession, game: GameCreate) -> Game:
-    await validate_game_players(db, game.game_type_id, game.players)
+    await validate_game_teams(db, game.game_type_id, game.players)
     db_game = GameModel(
         series_id=game.series_id,
         round=game.round,
@@ -119,7 +146,7 @@ async def list_games(db: AsyncSession) -> list[GameModel]:
     result = await db.execute(select(GameModel))
     return result.scalars().all()
 
-async def validate_game_players(db: AsyncSession, game_type_id: int, players: list[int]):
+async def validate_game_teams(db: AsyncSession, game_type_id: int, players: list[int]):
     result = await db.execute(select(GameTypeModel).filter(GameTypeModel.id == game_type_id))
     game_type = result.scalars().first()
     if not game_type:

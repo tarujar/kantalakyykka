@@ -21,6 +21,7 @@ CREATE TABLE game_types (
     throw_round_amount INTEGER NOT NULL DEFAULT 4,
     game_player_amount INTEGER NOT NULL DEFAULT 4,
     throws_in_set INTEGER NOT NULL DEFAULT 16,
+    kyykka_amount INTEGER NOT NULL DEFAULT 40,
     UNIQUE (name),
     UNIQUE (team_player_amount),
     CONSTRAINT valid_game_player_amount CHECK (game_player_amount <= team_player_amount)
