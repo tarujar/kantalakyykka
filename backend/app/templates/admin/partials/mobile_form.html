@@ -27,8 +27,32 @@
     {{ result }}
 {% endmacro %}
 
+{% macro render_player_select(team_num, set_num, throw_round_num, player_pos, player_choices, is_hidden_round) %}
+    <div class="player-select-group">
+        <label>{{ _('Player') }} {{ player_pos }}</label>
+        <select name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_player_{{ player_pos }}" 
+                class="form-control player-select"
+                {% if not is_hidden_round %}required{% endif %}
+                {% if is_hidden_round %}disabled{% endif %}>
+            <option value="">-- Select Player --</option>
+            {% for id, name in player_choices %}
+                <option value="{{ id }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+{% endmacro %}
+
+{# Add helper function for accessing form values #}
+{% macro get_form_value(form, field_name, default='') %}
+    {%- if form is defined and field_name in form._fields -%}
+        {{ form[field_name].data if form[field_name].data is not none else default }}
+    {%- else -%}
+        {{ default }}
+    {%- endif %}
+{% endmacro %}
+
 <div class="mobile-form">
-    <div class="help-text mb-3">
+    <div class="help-text mb-3"></div>
         <strong>Valid inputs:</strong>
         <ul>
             <li>Score (-40 to 80)</li>
@@ -57,31 +81,23 @@
     </div>
 
     {% macro render_throw_round(team_num, set_num, throw_round_num, is_home_team) %}
-        {% set player_list = team1_players if team_num == 1 else team2_players %}
+        {% set player_choices = team1_players if team_num == 1 else team2_players %}
+        {% set is_hidden_round = throw_round_num > game_type.throw_round_amount %}
         
-        <div class="throw-round-section">
+        <div class="throw-round-section" {% if is_hidden_round %}style="display: none;"{% endif %}>
             <h4>{{ _('Round') }} {{ throw_round_num }} - {{ _('Team') }} {{ team_num }}</h4>
             
             <div class="player-throw-columns">
                 <!-- First player column -->
                 <div class="player-throw-column">
-                    {% set player_1_index = get_player_for_round(throw_round_num, 1)|int %}
+                    {{ render_player_select(team_num, set_num, throw_round_num, 1, player_choices, is_hidden_round) }}
                     {% set base_throw_index = calculate_base_throw_index(set_num, throw_round_num, is_home_team, 1)|int %}
-                    <div class="player-select-group">
-                        <label>{{ _('Player') }} {{ player_1_index + 1 }}</label>
-                        <select name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_player_1" 
-                                class="form-control player-select" required>
-                            <option value="">-- Select Player --</option>
-                            {% for id, name in player_list %}
-                                <option value="{{ id }}">{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
                     <div class="throws-container">
                         <div class="throw-group">
                             <label>{{ _('Throw') }} {{ base_throw_index }}</label>
                             <input type="text" 
                                    name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_throw_1"
+                                   value="{{ get_form_value(form, 'set_%d_round_%d_team_%d_throw_1'|format(set_num, throw_round_num, team_num)) }}"
                                    class="form-control throw-input"
                                    data-throw-index="{{ base_throw_index }}"
                                    required>
@@ -90,6 +106,7 @@
                             <label>{{ _('Throw') }} {{ base_throw_index + 1 }}</label>
                             <input type="text" 
                                    name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_throw_2"
+                                   value="{{ get_form_value(form, 'set_%d_round_%d_team_%d_throw_2'|format(set_num, throw_round_num, team_num)) }}"
                                    class="form-control throw-input"
                                    data-throw-index="{{ base_throw_index + 1 }}"
                                    required>
@@ -99,23 +116,14 @@
 
                 <!-- Second player column -->
                 <div class="player-throw-column">
-                    {% set player_2_index = get_player_for_round(throw_round_num, 2)|int %}
+                    {{ render_player_select(team_num, set_num, throw_round_num, 2, player_choices, is_hidden_round) }}
                     {% set base_throw_index_2 = calculate_base_throw_index(set_num, throw_round_num, is_home_team, 2)|int %}
-                    <div class="player-select-group">
-                        <label>{{ _('Player') }} {{ player_2_index + 1 }}</label>
-                        <select name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_player_2" 
-                                class="form-control player-select" required>
-                            <option value="">-- Select Player --</option>
-                            {% for id, name in player_list %}
-                                <option value="{{ id }}">{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
                     <div class="throws-container">
                         <div class="throw-group">
                             <label>{{ _('Throw') }} {{ base_throw_index_2 }}</label>
                             <input type="text" 
                                    name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_throw_3"
+                                   value="{{ get_form_value(form, 'set_%d_round_%d_team_%d_throw_3'|format(set_num, throw_round_num, team_num)) }}"
                                    class="form-control throw-input"
                                    data-throw-index="{{ base_throw_index_2 }}"
                                    required>
@@ -124,6 +132,7 @@
                             <label>{{ _('Throw') }} {{ base_throw_index_2 + 1 }}</label>
                             <input type="text" 
                                    name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_throw_4"
+                                   value="{{ get_form_value(form, 'set_%d_round_%d_team_%d_throw_4'|format(set_num, throw_round_num, team_num)) }}"
                                    class="form-control throw-input"
                                    data-throw-index="{{ base_throw_index_2 + 1 }}"
                                    required>
@@ -138,6 +147,7 @@
         </div>
     {% endmacro %}
 
+    <!-- Fix the tab content sections -->
     <div id="set1" class="tab-content active">
         {% set rounds = range(1, (game_type.throw_round_amount if game_type else 4) + 1) %}
         {% for round_num in rounds %}

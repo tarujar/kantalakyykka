@@ -56,8 +56,8 @@ class ThrowInputField(StringField):
                 self.logger.error(f"Invalid throw input: {value}")
                 raise ValidationError(_('Invalid input. Use a score, H (hauki), F (fault), or E (unused)'))
 
-    @classmethod
-    def convert_to_display_value(cls, throw_obj):
+    @staticmethod
+    def convert_to_display_value(throw_obj):
         """Convert a SingleThrow object or throw type to display value (H, F, E, or score)"""
         if not throw_obj:
             return ''

@@ -62,7 +62,7 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
         return flattened
 
     @expose('/edit/', methods=('GET', 'POST'))
-    def edit_form_view(self):  # Remove cls parameter
+    def edit_form_view(self):
         game_id = request.args.get('id')
         if not game_id:
             flash('Game ID is required', 'error')
@@ -73,129 +73,56 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
             flash('Game not found', 'error')
             return redirect(url_for('admin.index'))
 
-        # Get game type from the game's series
         game_type = game.series.game_type
-
-        id = request.args.get('id')
-        if not id:
-            return redirect(url_for('.index_view'))
-
-        model = self.get_one(id)
-        if not model:
-            return redirect(url_for('.index_view'))
+        
+        form = GameScoreSheetForm(request.form if request.method == 'POST' else None, game_type=game_type)
+        
+        team1_players = get_team_players(game.team_1_id, self.session) or [('-1', 'No players')]
+        team2_players = get_team_players(game.team_2_id, self.session) or [('-1', 'No players')]
 
         if request.method == 'POST':
-            # Log raw form data before processing
-            self.logger.debug("Raw form data received:")
-            for key, value in request.form.items():
-                if 'throw_' in key:
-                    self.logger.debug(f"{key}: {value}")
-                if 'score_' in key:
-                    self.logger.debug(f"{key}: {value}")
-
-            # Pass game_type when creating form
-            form = GameScoreSheetForm(request.form, game_type=game_type)
-            game = self.get_game(id)
-            if game:
-                team1_players = get_team_players(game.team_1_id, self.session) or [(-1, 'No players')]
-                team2_players = get_team_players(game.team_2_id, self.session) or [(-1, 'No players')]
-                set_player_choices(form, team1_players, team2_players)
-                self.logger.debug(f"Team 1 players {team1_players}")
-
-
             if form.validate():
                 try:
-                    # Debug form object data after validation
-                    self.logger.debug("Validated form data:")
-                    for team_index, team_throws in enumerate([form.team_1_round_throws, form.team_2_round_throws]):
-                        team_name = f"Team {team_index + 1}"
-                        for entry in team_throws:
-                            for round_num in [1, 2]:
-                                round_data = getattr(entry, f'round_{round_num}')
-                                for pos, throw_form in enumerate(round_data, 1):
-                                    self.logger.debug(f"{team_name} Round {round_num} Position {pos}:")
-                                    self.logger.debug(f"  Raw data: {[getattr(throw_form, f'throw_{i}').raw_data[0] for i in range(1, 5) if getattr(throw_form, f'throw_{i}').raw_data]}")
-                                    self.logger.debug(f"  Processed data: {[getattr(throw_form, f'throw_{i}').data for i in range(1, 5)]}")
-
-                    self.game_service.process_game_throws(model.id, form, self.session)
+                    self.game_service.process_game_throws(game.id, form, self.session)
                     flash('Throws saved successfully!', 'success')
                     return redirect(url_for('.index_view'))
                 except Exception as e:
                     self.logger.error(f"Error saving throws: {e}", exc_info=True)
                     flash('Error saving throws', 'error')
             else:
-                self.logger.warning(f"Form validation failed: {form.errors}")
-                flattened_errors = self._flatten_form_errors(form.errors)
-                
-                # Get the form type from the submitted data
-                form_type = request.form.get('form_type', 'mobile')
-                
                 return self.render(
                     self.edit_template,
                     form=form,
-                    model=model,
+                    model=game,
                     game_constants=GameScores,
-                    return_url=url_for('.index_view'),
-                    form_errors=flattened_errors,
-                    active_view=form_type  # Pass the active view to template
+                    game_type=game_type,
+                    throw_round_amount=game_type.throw_round_amount,
+                    form_errors=self._flatten_form_errors(form.errors),
+                    team1_players=team1_players,
+                    team2_players=team2_players
                 )
 
-            return self.render(
-                self.edit_template,
-                form=form,
-                model=model,
-                game_constants=GameScores,
-                return_url=url_for('.index_view')
-            )
-
         # GET request
-        # Pass game_type when creating form for GET
-        form = GameScoreSheetForm(game_type=game_type)
-        game = self.get_game(id)
-        if game:
-            # Add debug logging for team IDs
-            self.logger.debug(f"Getting players for game {game.id}")
-            self.logger.debug(f"Team 1 ID: {game.team_1_id}")
-            self.logger.debug(f"Team 2 ID: {game.team_2_id}")
-            
-            # Get and verify team players
-            team1_players = get_team_players(game.team_1_id, self.session)
-            team2_players = get_team_players(game.team_2_id, self.session)
-            
-            self.logger.debug(f"Team 1 players found: {team1_players}")
-            self.logger.debug(f"Team 2 players found: {team2_players}")
-            
-            # Only proceed if we have players
-            if not team1_players:
-                self.logger.error(f"No players found for team 1 (ID: {game.team_1_id})")
-            if not team2_players:
-                self.logger.error(f"No players found for team 2 (ID: {game.team_2_id})")
-                
-            set_player_choices(form, team1_players or [(-1, 'No players')], team2_players or [(-1, 'No players')])
-            load_existing_throws(self.session, form, game)
-            self.logger.debug(f"Rendering template with team1_players={team1_players}, team2_players={team2_players}")
-            return self.render(
-                self.edit_template,
-                form=form,
-                model=model,
-                game_constants=GameScores,  # Pass GameScores to the template context
-                return_url=url_for('.index_view'),
-                active_view='mobile',  # Default to desktop view
-                game_type=game_type,
-                throw_round_amount=game_type.throw_round_amount,
-                team1_players=team1_players,  # Pass directly to template
-                team2_players=team2_players   # Pass directly to template
-            )
+        load_existing_throws(self.session, form, game)
+
+        # Add safer debug logging for form fields
+        self.logger.debug("Form field values after loading:")
+        if hasattr(form, '_fields'):
+            for field_name, field in form._fields.items():
+                try:
+                    self.logger.debug(f"{field_name}: {field.data if hasattr(field, 'data') else 'NO DATA'}")
+                except Exception as e:
+                    self.logger.debug(f"Could not get data for {field_name}: {e}")
 
         return self.render(
             self.edit_template,
             form=form,
-            model=model,
-            game_constants=GameScores,  # Pass GameScores to the template context
-            return_url=url_for('.index_view'),
-            active_view='mobile',  # Default to desktop view
+            model=game,
+            game_constants=GameScores,
             game_type=game_type,
-            throw_round_amount=game_type.throw_round_amount
+            throw_round_amount=game_type.throw_round_amount,
+            team1_players=team1_players,
+            team2_players=team2_players
         )
 
     def get_game(self, game_id):

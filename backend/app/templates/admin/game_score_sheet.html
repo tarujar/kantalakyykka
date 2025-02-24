@@ -40,23 +40,33 @@
                 team2Select.selectedIndex = 2;  // Select second actual team
             }
 
-            // Auto-fill throw values
-            const possibleThrows = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];  // Valid throw values
+            // Auto-fill throw values with random valid scores
+            const possibleThrows = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
             const throwInputs = document.querySelectorAll('input[name*="throw_"]');
-            
             throwInputs.forEach(input => {
                 const randomIndex = Math.floor(Math.random() * possibleThrows.length);
                 input.value = possibleThrows[randomIndex];
             });
 
             // Auto-fill player selections
-            const playerSelects = document.querySelectorAll('select[name*="player_id"]');
+            const playerSelects = document.querySelectorAll('.player-select');
             playerSelects.forEach(select => {
-                if (select.options.length > 0) {
-                    const randomIndex = Math.floor(Math.random() * (select.options.length - 1)) + 1;
-                    select.selectedIndex = randomIndex;
-                }
+                // Skip if no options available
+                if (select.options.length <= 1) return;
+                
+                // Get available options (excluding the first "Select Player" option)
+                const availableOptions = Array.from(select.options).slice(1);
+                
+                // Select a random player from available options
+                const randomIndex = Math.floor(Math.random() * availableOptions.length);
+                select.value = availableOptions[randomIndex].value;
+                
+                // Log for debugging
+                console.log(`Set ${select.name} to ${select.value}`);
             });
+
+            // Calculate total scores after filling
+            calculateTotalScores();
         }
 
         function toggleForm() {
@@ -354,7 +364,7 @@
                     </div>
 
                     <!-- Include desktop form -->
-                    <!--{% include 'admin/partials/desktop_form.html' %}-->
+
 
                     <!-- Include mobile form -->
                     {% include 'admin/partials/mobile_form.html' %}

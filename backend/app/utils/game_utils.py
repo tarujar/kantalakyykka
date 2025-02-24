@@ -1,37 +1,44 @@
-from app.models.models import SingleRoundThrow, SingleThrow
+from app.models.models import SingleRoundThrow, SingleThrow, ThrowType
 from app.utils.throw_input import ThrowInputField
 import logging
+from wtforms import StringField
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def set_player_choices(form, team1_players, team2_players):
-    """Set player choices for form fields"""
-    logger = logging.getLogger(__name__)
-    
-    # First team forms
-    if form.team_1_round_throws.entries:
-        team1_form = form.team_1_round_throws.entries[0]
-        for round_num in range(1, form.game_type.throw_round_amount + 1):
-            round_field = f'round_{round_num}'
-            if hasattr(team1_form, round_field):
-                round_form = getattr(team1_form, round_field)
-                if round_form.entries:
-                    for throw_form in round_form.entries:
-                        throw_form.player_id.choices = team1_players
-                        throw_form.home_team.data = True
+    """Set player choices for both players in each round"""
+    if not form or not hasattr(form, 'team_1_round_throws'):
+        logger.error("Invalid form structure")
+        return
 
-    # Second team forms
-    if form.team_2_round_throws.entries:
-        team2_form = form.team_2_round_throws.entries[0]
-        for round_num in range(1, form.game_type.throw_round_amount + 1):
-            round_field = f'round_{round_num}'
-            if hasattr(team2_form, round_field):
-                round_form = getattr(team2_form, round_field)
-                if round_form.entries:
-                    for throw_form in round_form.entries:
-                        throw_form.player_id.choices = team2_players
-                        throw_form.home_team.data = False
+    # Get game type from the form
+    game_type = getattr(form, 'game_type', None)
+    if not game_type:
+        logger.error("Game type not found in form")
+        return
+
+    throw_round_amount = game_type.throw_round_amount
+
+    # For team 1
+    for entry in form.team_1_round_throws:
+        entry.game_type = game_type  # Set game_type for the entry
+        for round_num in range(1, throw_round_amount + 1):
+            round_field = entry.get_round(round_num)
+            if round_field and hasattr(round_field.form, 'player_1_id'):
+                round_field.form.player_1_id.choices = [('-1', '-- Select Player 1 --')] + team1_players
+                round_field.form.player_2_id.choices = [('-1', '-- Select Player 2 --')] + team1_players
+                logger.debug(f"Set team 1 player choices for round {round_num}")
+
+    # For team 2
+    for entry in form.team_2_round_throws:
+        entry.game_type = game_type  # Set game_type for the entry
+        for round_num in range(1, throw_round_amount + 1):
+            round_field = entry.get_round(round_num)
+            if round_field and hasattr(round_field.form, 'player_1_id'):
+                round_field.form.player_1_id.choices = [('-1', '-- Select Player 1 --')] + team2_players
+                round_field.form.player_2_id.choices = [('-1', '-- Select Player 2 --')] + team2_players
+                logger.debug(f"Set team 2 player choices for round {round_num}")
 
 def set_throw_value(throw_form, throw, throw_number):
     """Set throw value and log warning if throw is not found"""
@@ -40,47 +47,85 @@ def set_throw_value(throw_form, throw, throw_number):
     else:
         logger.warning(f"Throw {throw_number} not found for throw ID {getattr(throw, f'throw_{throw_number}') if throw else 'N/A'}")
 
+def _create_form_field_name(set_index, round_num, team_num, field_type, number=None):
+    """Create standardized form field name"""
+    base = f"set_{set_index}_round_{round_num}_team_{team_num}_{field_type}"
+    return f"{base}_{number}" if number is not None else base
+
+def _add_field_if_missing(form, field_name, field_type=StringField):
+    """Add a field to the form if it doesn't exist"""
+    if not hasattr(form, field_name):
+        setattr(form, field_name, field_type())
+        if not hasattr(form, '_fields'):
+            form._fields = {}
+        form._fields[field_name] = getattr(form, field_name)
+
 def load_existing_throws(session, form, game):
     """Load existing throws into form"""
     throws = session.query(SingleRoundThrow).filter_by(game_id=game.id).all()
     logger.debug(f"Loading throws for game {game.id}: found {len(throws)} throws")
 
-    if not throws:
-        return
-
-    # Load round scores from the games table
-    logger.debug(f"Loading scores: {game.score_1_1}, {game.score_1_2}, {game.score_2_1}, {game.score_2_2}")
+    # First load game scores
     form.score_1_1.data = game.score_1_1
     form.score_1_2.data = game.score_1_2
     form.score_2_1.data = game.score_2_1
     form.score_2_2.data = game.score_2_2
 
-    # Calculate end scores
-    form.end_score_team_1.data = game.score_1_1 + game.score_1_2
-    form.end_score_team_2.data = game.score_2_1 + game.score_2_2
-
-    # Process throws for each team and round
+    # Then load throws
     for throw in throws:
-        team_throws = form.team_1_round_throws if throw.home_team else form.team_2_round_throws
         try:
-            # Access the correct round and throw position
-            throw_form = team_throws.entries[0][f'round_{throw.game_set_index}'].entries[throw.throw_position - 1]
-            
-            # Set basic data
-            throw_form.game_set_index.data = throw.game_set_index
-            throw_form.throw_position.data = throw.throw_position
-            throw_form.home_team.data = throw.home_team
-            throw_form.player_id.data = str(throw.player_id)
+            # Determine prefix
+            team_num = 1 if throw.home_team else 2
+            set_index = throw.game_set_index
+            round_num = throw.throw_position
 
-            # Load throw values directly using process_data
-            for i in range(1, 5):
-                throw_id = getattr(throw, f'throw_{i}')
+            # Create fields for this round if they don't exist
+            for field_type in ['player', 'throw']:
+                for num in range(1, 5):
+                    field_name = _create_form_field_name(set_index, round_num, team_num, field_type, num)
+                    _add_field_if_missing(form, field_name)
+                    logger.debug(f"Ensured field exists: {field_name}")
+
+            # Load player IDs
+            if throw.throw_1:
+                player1 = session.query(SingleThrow).get(throw.throw_1)
+                if player1:
+                    field_name = _create_form_field_name(set_index, round_num, team_num, 'player', 1)
+                    form._fields[field_name].data = str(player1.player_id)
+                    logger.debug(f"Set {field_name}={player1.player_id}")
+
+            if throw.throw_3:
+                player2 = session.query(SingleThrow).get(throw.throw_3)
+                if player2:
+                    field_name = _create_form_field_name(set_index, round_num, team_num, 'player', 2)
+                    form._fields[field_name].data = str(player2.player_id)
+                    logger.debug(f"Set {field_name}={player2.player_id}")
+
+            # Load throws
+            throws_map = {
+                1: throw.throw_1,
+                2: throw.throw_2,
+                3: throw.throw_3,
+                4: throw.throw_4
+            }
+
+            for throw_num, throw_id in throws_map.items():
                 if throw_id:
                     single_throw = session.query(SingleThrow).get(throw_id)
                     if single_throw:
-                        field = getattr(throw_form, f'throw_{i}')
-                        field.set_throw_display_value(single_throw)  # Use the new method name
-                        #logger.debug(f"Set throw {i} value: type={single_throw.throw_type}, score={single_throw.throw_score}")
+                        field_name = _create_form_field_name(set_index, round_num, team_num, 'throw', throw_num)
+                        
+                        # Convert throw to display format
+                        value = {
+                            ThrowType.VALID: str(single_throw.throw_score),
+                            ThrowType.HAUKI: 'H',
+                            ThrowType.FAULT: 'F',
+                            ThrowType.E: 'E'
+                        }.get(single_throw.throw_type, 'E')
+                        
+                        form._fields[field_name].data = value
+                        logger.debug(f"Set {field_name}={value}")
 
-        except (IndexError, AttributeError) as e:
-            logger.error(f"Error setting throw data: {e}")
+        except Exception as e:
+            logger.error(f"Error loading throw data: {e}", exc_info=True)
+            continue
