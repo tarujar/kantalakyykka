@@ -105,21 +105,12 @@ class GameScoreSheetForm(Form):
                 logger.debug(f"Setting up {field_name}")
                 
                 if not field.entries:
-                    # Create new TeamRoundThrowsForm with game_type
-                    form_data = {'csrf': False}
-                    if formdata:
-                        prefix = f"{field_name}-0-"
-                        form_data.update({
-                            k[len(prefix):]: v 
-                            for k, v in formdata.items() 
-                            if k.startswith(prefix)
-                        })
-                    
-                    # Create entry with game_type
-                    field.append_entry(form_data)
+                    field.append_entry()
                     entry = field.entries[0]
                     entry.game_type = self.game_type
                     logger.debug(f"Created entry for {field_name} with game_type")
+                    logger.debug(f"Entry fields: {dir(entry)}")
+                    logger.debug(f"Entry has player_id: {hasattr(entry, 'player_id')}")
 
     def __contains__(self, key):
         """Allow checking if score fields exist"""

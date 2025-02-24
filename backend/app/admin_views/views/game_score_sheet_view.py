@@ -100,6 +100,8 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
                 team1_players = get_team_players(game.team_1_id, self.session) or [(-1, 'No players')]
                 team2_players = get_team_players(game.team_2_id, self.session) or [(-1, 'No players')]
                 set_player_choices(form, team1_players, team2_players)
+                self.logger.debug(f"Team 1 players {team1_players}")
+
 
             if form.validate():
                 try:
@@ -151,11 +153,39 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
         form = GameScoreSheetForm(game_type=game_type)
         game = self.get_game(id)
         if game:
-            team1_players = get_team_players(game.team_1_id, self.session) or [(-1, 'No players')]
-            team2_players = get_team_players(game.team_2_id, self.session) or [(-1, 'No players')]
+            # Add debug logging for team IDs
+            self.logger.debug(f"Getting players for game {game.id}")
+            self.logger.debug(f"Team 1 ID: {game.team_1_id}")
+            self.logger.debug(f"Team 2 ID: {game.team_2_id}")
             
-            set_player_choices(form, team1_players, team2_players)
+            # Get and verify team players
+            team1_players = get_team_players(game.team_1_id, self.session)
+            team2_players = get_team_players(game.team_2_id, self.session)
+            
+            self.logger.debug(f"Team 1 players found: {team1_players}")
+            self.logger.debug(f"Team 2 players found: {team2_players}")
+            
+            # Only proceed if we have players
+            if not team1_players:
+                self.logger.error(f"No players found for team 1 (ID: {game.team_1_id})")
+            if not team2_players:
+                self.logger.error(f"No players found for team 2 (ID: {game.team_2_id})")
+                
+            set_player_choices(form, team1_players or [(-1, 'No players')], team2_players or [(-1, 'No players')])
             load_existing_throws(self.session, form, game)
+            self.logger.debug(f"Rendering template with team1_players={team1_players}, team2_players={team2_players}")
+            return self.render(
+                self.edit_template,
+                form=form,
+                model=model,
+                game_constants=GameScores,  # Pass GameScores to the template context
+                return_url=url_for('.index_view'),
+                active_view='mobile',  # Default to desktop view
+                game_type=game_type,
+                throw_round_amount=game_type.throw_round_amount,
+                team1_players=team1_players,  # Pass directly to template
+                team2_players=team2_players   # Pass directly to template
+            )
 
         return self.render(
             self.edit_template,

@@ -100,25 +100,40 @@ def get_team_choices_with_context():
         return get_flat_team_choices()
 
 def get_team_players(team_id, session=None):
-    """Get list of players for a specific team
-    Args:
-        team_id: The ID of the team
-        session: Optional database session (uses db.session if not provided)
-    Returns:
-        List of tuples (player_id, player_name) for the team's roster
-    """
+    """Get list of players for a specific team"""
+    logger = logging.getLogger(__name__)
+    
     try:
+        if not team_id:
+            logger.error("No team_id provided")
+            return []
+            
         if not session:
             session = db.session
+            
+        # Debug query execution
+        logger.debug(f"Querying players for team_id: {team_id}")
         
-        with current_app.app_context():
-            players = session.query(Player)\
-                .join(RosterPlayersInSeries)\
-                .filter(RosterPlayersInSeries.registration_id == team_id)\
-                .all()
-            return [(str(p.id), p.name) for p in players]
+        # Check if team exists
+        team = session.query(SeriesRegistration).get(team_id)
+        if not team:
+            logger.error(f"Team not found with ID: {team_id}")
+            return []
+            
+        # Get players with explicit join conditions
+        players = session.query(Player)\
+            .join(RosterPlayersInSeries, RosterPlayersInSeries.player_id == Player.id)\
+            .filter(RosterPlayersInSeries.registration_id == team_id)\
+            .order_by(Player.name)\
+            .all()
+            
+        logger.debug(f"Found {len(players)} players for team {team_id}")
+        logger.debug(f"Player IDs: {[p.id for p in players]}")
+        
+        return [(str(p.id), p.name) for p in players]
+            
     except Exception as e:
-        logging.error(f"Error getting team players: {e}")
+        logger.error(f"Error getting team players: {e}", exc_info=True)
         return []
 
 def get_registration_choices():

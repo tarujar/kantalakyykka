@@ -57,8 +57,7 @@
     </div>
 
     {% macro render_throw_round(team_num, set_num, throw_round_num, is_home_team) %}
-        {% set team_throws = form['team_' ~ team_num ~ '_round_throws'].entries[0] %}
-        {% set round_field = 'round_' ~ throw_round_num %}
+        {% set player_list = team1_players if team_num == 1 else team2_players %}
         
         <div class="throw-round-section">
             <h4>{{ _('Round') }} {{ throw_round_num }} - {{ _('Team') }} {{ team_num }}</h4>
@@ -69,14 +68,13 @@
                     {% set player_1_index = get_player_for_round(throw_round_num, 1)|int %}
                     {% set base_throw_index = calculate_base_throw_index(set_num, throw_round_num, is_home_team, 1)|int %}
                     <div class="player-select-group">
-                        <label>{{ _('Player') }} {{ player_1_index + 1 }} ({{ _('throws') }} {{ base_throw_index }}-{{ base_throw_index + 1 }})</label>
+                        <label>{{ _('Player') }} {{ player_1_index + 1 }}</label>
                         <select name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_player_1" 
                                 class="form-control player-select" required>
-                            {% if team_throws[round_field] is defined %}
-                                {% for value, label in team_throws[round_field].entries[0].player_id.choices %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            {% endif %}
+                            <option value="">-- Select Player --</option>
+                            {% for id, name in player_list %}
+                                <option value="{{ id }}">{{ name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="throws-container">
@@ -104,14 +102,13 @@
                     {% set player_2_index = get_player_for_round(throw_round_num, 2)|int %}
                     {% set base_throw_index_2 = calculate_base_throw_index(set_num, throw_round_num, is_home_team, 2)|int %}
                     <div class="player-select-group">
-                        <label>{{ _('Player') }} {{ player_2_index + 1 }} ({{ _('throws') }} {{ base_throw_index_2 }}-{{ base_throw_index_2 + 1 }})</label>
+                        <label>{{ _('Player') }} {{ player_2_index + 1 }}</label>
                         <select name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_player_2" 
                                 class="form-control player-select" required>
-                            {% if team_throws[round_field] is defined %}
-                                {% for value, label in team_throws[round_field].entries[0].player_id.choices %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            {% endif %}
+                            <option value="">-- Select Player --</option>
+                            {% for id, name in player_list %}
+                                <option value="{{ id }}">{{ name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="throws-container">

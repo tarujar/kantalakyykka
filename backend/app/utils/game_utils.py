@@ -7,13 +7,31 @@ logger.setLevel(logging.DEBUG)
 
 def set_player_choices(form, team1_players, team2_players):
     """Set player choices for form fields"""
-    for team_index, (throws, players) in enumerate([(form.team_1_round_throws, team1_players), 
-                                                  (form.team_2_round_throws, team2_players)]):
-        for entry in throws.entries:
-            for round_num in [1, 2]:
-                for throw_form in entry[f'round_{round_num}'].entries:
-                    throw_form.player_id.choices = players
-                    throw_form.home_team.data = (team_index == 0)  # Set home_team flag based on team index
+    logger = logging.getLogger(__name__)
+    
+    # First team forms
+    if form.team_1_round_throws.entries:
+        team1_form = form.team_1_round_throws.entries[0]
+        for round_num in range(1, form.game_type.throw_round_amount + 1):
+            round_field = f'round_{round_num}'
+            if hasattr(team1_form, round_field):
+                round_form = getattr(team1_form, round_field)
+                if round_form.entries:
+                    for throw_form in round_form.entries:
+                        throw_form.player_id.choices = team1_players
+                        throw_form.home_team.data = True
+
+    # Second team forms
+    if form.team_2_round_throws.entries:
+        team2_form = form.team_2_round_throws.entries[0]
+        for round_num in range(1, form.game_type.throw_round_amount + 1):
+            round_field = f'round_{round_num}'
+            if hasattr(team2_form, round_field):
+                round_form = getattr(team2_form, round_field)
+                if round_form.entries:
+                    for throw_form in round_form.entries:
+                        throw_form.player_id.choices = team2_players
+                        throw_form.home_team.data = False
 
 def set_throw_value(throw_form, throw, throw_number):
     """Set throw value and log warning if throw is not found"""
