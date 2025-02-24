@@ -62,7 +62,20 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
         return flattened
 
     @expose('/edit/', methods=('GET', 'POST'))
-    def edit_form_view(self):
+    def edit_form_view(self):  # Remove cls parameter
+        game_id = request.args.get('id')
+        if not game_id:
+            flash('Game ID is required', 'error')
+            return redirect(url_for('admin.index'))
+
+        game = self.session.query(self.model).get(game_id)
+        if not game:
+            flash('Game not found', 'error')
+            return redirect(url_for('admin.index'))
+
+        # Get game type from the game's series
+        game_type = game.series.game_type
+
         id = request.args.get('id')
         if not id:
             return redirect(url_for('.index_view'))
@@ -80,7 +93,8 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
                 if 'score_' in key:
                     self.logger.debug(f"{key}: {value}")
 
-            form = GameScoreSheetForm(request.form)
+            # Pass game_type when creating form
+            form = GameScoreSheetForm(request.form, game_type=game_type)
             game = self.get_game(id)
             if game:
                 team1_players = get_team_players(game.team_1_id, self.session) or [(-1, 'No players')]
@@ -112,7 +126,7 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
                 flattened_errors = self._flatten_form_errors(form.errors)
                 
                 # Get the form type from the submitted data
-                form_type = request.form.get('form_type', 'desktop')
+                form_type = request.form.get('form_type', 'mobile')
                 
                 return self.render(
                     self.edit_template,
@@ -133,7 +147,8 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
             )
 
         # GET request
-        form = GameScoreSheetForm()
+        # Pass game_type when creating form for GET
+        form = GameScoreSheetForm(game_type=game_type)
         game = self.get_game(id)
         if game:
             team1_players = get_team_players(game.team_1_id, self.session) or [(-1, 'No players')]
@@ -148,7 +163,9 @@ class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelVi
             model=model,
             game_constants=GameScores,  # Pass GameScores to the template context
             return_url=url_for('.index_view'),
-            active_view='desktop'  # Default to desktop view
+            active_view='mobile',  # Default to desktop view
+            game_type=game_type,
+            throw_round_amount=game_type.throw_round_amount
         )
 
     def get_game(self, game_id):

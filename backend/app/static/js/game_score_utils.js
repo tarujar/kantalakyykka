@@ -9,13 +9,18 @@ function validateAndCalculateTotalScores(input, gameScores) {
 }
 
 function calculateTotalScores() {
-    const team1Round1 = parseInt(document.querySelector('input[name="score_1_1"]').value) || 0;
-    const team2Round1 = parseInt(document.querySelector('input[name="score_2_1"]').value) || 0;
-    const team1Round2 = parseInt(document.querySelector('input[name="score_1_2"]').value) || 0;
-    const team2Round2 = parseInt(document.querySelector('input[name="score_2_2"]').value) || 0;
+    const scoreInputs = document.querySelectorAll('input[name^="score_"]');
+    let team1Total = 0;
+    let team2Total = 0;
 
-    const team1Total = team1Round1 + team1Round2;
-    const team2Total = team2Round1 + team2Round2;
+    scoreInputs.forEach(input => {
+        const value = parseInt(input.value) || 0;
+        if (input.name.startsWith('score_1_')) {
+            team1Total += value;
+        } else if (input.name.startsWith('score_2_')) {
+            team2Total += value;
+        }
+    });
 
     document.getElementById('team1-total').textContent = team1Total;
     document.getElementById('team2-total').textContent = team2Total;

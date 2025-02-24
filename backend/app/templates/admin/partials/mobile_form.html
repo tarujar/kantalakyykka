@@ -1,10 +1,30 @@
-<!-- Add this macro at the top -->
+<!-- Add helper macros at the very top -->
 {% macro render_field_errors(field_name) %}
     {% if form_errors and field_name in form_errors %}
         <div class="invalid-feedback d-block">
             {{ form_errors[field_name]|join(', ') }}
         </div>
     {% endif %}
+{% endmacro %}
+
+{% macro get_player_for_round(round_num, player_position) %}
+    {% set total_players = game_type.team_player_amount %}
+    {% set base_player = ((round_num - 1) // 2 * 2) % total_players %}
+    {% set result = (base_player + player_position - 1) % total_players %}
+    {{ result|int }}
+{% endmacro %}
+
+{% macro calculate_base_throw_index(set_num, throw_round_num, is_home_team, player_position) %}
+    {% set throws_per_player = 2 %}
+    {% set players_per_team = 2 %}
+    {% set throws_per_round = throws_per_player * players_per_team %}
+    
+    {# Calculate base index that continues across rounds but resets for each team #}
+    {% set round_base = (throw_round_num - 1) * throws_per_round %}
+    {% set player_offset = (player_position - 1) * throws_per_player %}
+    {% set result = (round_base + player_offset + 1)|int %}
+    
+    {{ result }}
 {% endmacro %}
 
 <div class="mobile-form">
@@ -31,82 +51,113 @@
     </div>
 
     <div class="mobile-tabs">
-        <button type="button"  class="tab-button active" onclick="showTab('round1')">{{ _('Round 1') }}</button>
-        <button type="button" class="tab-button" onclick="showTab('round2')">{{ _('Round 2') }}</button>
+        <button type="button" class="tab-button active" onclick="showTab('set1')">{{ _('Set 1') }}</button>
+        <button type="button" class="tab-button" onclick="showTab('set2')">{{ _('Set 2') }}</button>
         <button type="button" class="tab-button" onclick="showTab('scores')">{{ _('Scores') }}</button>
     </div>
 
-    <div id="round1" class="tab-content active" tabindex="-1">
-        {% for team_num in [1, 2] %}
-            <div class="team-section">
-                <h3>{{ _('Team') }} {{ team_num }}</h3>
-                {% for player_index in range(4) %}
-                    {% set throw_form = form['team_' ~ team_num ~ '_round_throws'].entries[0] %}
-                    {% set single_throw = throw_form['round_1'].entries[player_index] %}
-                    <div class="player-throws">
-                        <select name="{{ single_throw.player_id.name }}" class="player-select" required>
-                            {% for value, label in single_throw.player_id.choices %}
-                                <option value="{{ value }}" {% if value == single_throw.player_id.data %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                            {% endfor %}
+    {% macro render_throw_round(team_num, set_num, throw_round_num, is_home_team) %}
+        {% set team_throws = form['team_' ~ team_num ~ '_round_throws'].entries[0] %}
+        {% set round_field = 'round_' ~ throw_round_num %}
+        
+        <div class="throw-round-section">
+            <h4>{{ _('Round') }} {{ throw_round_num }} - {{ _('Team') }} {{ team_num }}</h4>
+            
+            <div class="player-throw-columns">
+                <!-- First player column -->
+                <div class="player-throw-column">
+                    {% set player_1_index = get_player_for_round(throw_round_num, 1)|int %}
+                    {% set base_throw_index = calculate_base_throw_index(set_num, throw_round_num, is_home_team, 1)|int %}
+                    <div class="player-select-group">
+                        <label>{{ _('Player') }} {{ player_1_index + 1 }} ({{ _('throws') }} {{ base_throw_index }}-{{ base_throw_index + 1 }})</label>
+                        <select name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_player_1" 
+                                class="form-control player-select" required>
+                            {% if team_throws[round_field] is defined %}
+                                {% for value, label in team_throws[round_field].entries[0].player_id.choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            {% endif %}
                         </select>
-                        <div class="throw-inputs">
-                            {% for i in range(1, 5) %}
-                                <div class="throw-input-container">
-                                    <input type="text" 
-                                           name="{{ single_throw['throw_' ~ i].name }}"
-                                           value="{{ single_throw['throw_' ~ i].data if single_throw['throw_' ~ i].data is not none else '' }}"
-                                           class="form-control throw-input {% if single_throw['throw_' ~ i].errors %}is-invalid{% endif %}"
-                                           required
-                                           tabindex="0">
-                                </div>
-                            {% endfor %}
-                        </div>
-                        <input type="hidden" name="{{ single_throw.game_set_index.name }}" value="1">
-                        <input type="hidden" name="{{ single_throw.throw_position.name }}" value="{{ player_index + 1 }}">
-                        <input type="hidden" name="{{ single_throw.home_team.name }}" value="{{ 'true' if team_num == 1 else 'false' }}">
-                        {{ single_throw.hidden_tag() if single_throw.hidden_tag }}
                     </div>
-                {% endfor %}
+                    <div class="throws-container">
+                        <div class="throw-group">
+                            <label>{{ _('Throw') }} {{ base_throw_index }}</label>
+                            <input type="text" 
+                                   name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_throw_1"
+                                   class="form-control throw-input"
+                                   data-throw-index="{{ base_throw_index }}"
+                                   required>
+                        </div>
+                        <div class="throw-group">
+                            <label>{{ _('Throw') }} {{ base_throw_index + 1 }}</label>
+                            <input type="text" 
+                                   name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_throw_2"
+                                   class="form-control throw-input"
+                                   data-throw-index="{{ base_throw_index + 1 }}"
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Second player column -->
+                <div class="player-throw-column">
+                    {% set player_2_index = get_player_for_round(throw_round_num, 2)|int %}
+                    {% set base_throw_index_2 = calculate_base_throw_index(set_num, throw_round_num, is_home_team, 2)|int %}
+                    <div class="player-select-group">
+                        <label>{{ _('Player') }} {{ player_2_index + 1 }} ({{ _('throws') }} {{ base_throw_index_2 }}-{{ base_throw_index_2 + 1 }})</label>
+                        <select name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_player_2" 
+                                class="form-control player-select" required>
+                            {% if team_throws[round_field] is defined %}
+                                {% for value, label in team_throws[round_field].entries[0].player_id.choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="throws-container">
+                        <div class="throw-group">
+                            <label>{{ _('Throw') }} {{ base_throw_index_2 }}</label>
+                            <input type="text" 
+                                   name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_throw_3"
+                                   class="form-control throw-input"
+                                   data-throw-index="{{ base_throw_index_2 }}"
+                                   required>
+                        </div>
+                        <div class="throw-group">
+                            <label>{{ _('Throw') }} {{ base_throw_index_2 + 1 }}</label>
+                            <input type="text" 
+                                   name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_throw_4"
+                                   class="form-control throw-input"
+                                   data-throw-index="{{ base_throw_index_2 + 1 }}"
+                                   required>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Hidden fields -->
+            <input type="hidden" name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_is_home" value="{{ 'true' if is_home_team else 'false' }}">
+            <input type="hidden" name="set_{{ set_num }}_round_{{ throw_round_num }}_team_{{ team_num }}_round_num" value="{{ throw_round_num }}">
+        </div>
+    {% endmacro %}
+
+    <div id="set1" class="tab-content active">
+        {% set rounds = range(1, (game_type.throw_round_amount if game_type else 4) + 1) %}
+        {% for round_num in rounds %}
+            <!-- Set 1: Home team throws first -->
+            {{ render_throw_round(1, 1, round_num, true) }}
+            <!-- Set 1: Away team throws second -->
+            {{ render_throw_round(2, 1, round_num, false) }}
         {% endfor %}
     </div>
 
-    <div id="round2" class="tab-content" tabindex="-1">
-        {% for team_num in [1, 2] %}
-            <div class="team-section">
-                <h3>{{ _('Team') }} {{ team_num }}</h3>
-                {% for player_index in range(4) %}
-                    {% set throw_form = form['team_' ~ team_num ~ '_round_throws'].entries[0] %}
-                    {% set single_throw = throw_form['round_2'].entries[player_index] %}
-                    <div class="player-throws">
-                        <select name="{{ single_throw.player_id.name }}" class="player-select" required>
-                            {% for value, label in single_throw.player_id.choices %}
-                                <option value="{{ value }}" {% if value == single_throw.player_id.data %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <div class="throw-inputs">
-                            {% for i in range(1, 5) %}
-                                <div class="throw-input-container">
-                                    <input type="text" 
-                                           name="{{ single_throw['throw_' ~ i].name }}"
-                                           value="{{ single_throw['throw_' ~ i].data if single_throw['throw_' ~ i].data is not none else '' }}"
-                                           class="form-control throw-input {% if single_throw['throw_' ~ i].errors %}is-invalid{% endif %}"
-                                           required
-                                           tabindex="0">
-                                </div>
-                            {% endfor %}
-                        </div>
-                        <input type="hidden" name="{{ single_throw.game_set_index.name }}" value="2">
-                        <input type="hidden" name="{{ single_throw.throw_position.name }}" value="{{ player_index + 1 }}">
-                        <input type="hidden" name="{{ single_throw.home_team.name }}" value="{{ 'true' if team_num == 1 else 'false' }}">
-                        {{ single_throw.hidden_tag() if single_throw.hidden_tag }}
-                    </div>
-                {% endfor %}
-            </div>
+    <div id="set2" class="tab-content">
+        {% set rounds = range(1, (game_type.throw_round_amount if game_type else 4) + 1) %}
+        {% for round_num in rounds %}
+            <!-- Set 2: Away team throws first -->
+            {{ render_throw_round(2, 2, round_num, false) }}
+            <!-- Set 2: Home team throws second -->
+            {{ render_throw_round(1, 2, round_num, true) }}
         {% endfor %}
     </div>
 
@@ -185,3 +236,173 @@
         </button>
     </div>
 </div>
+
+<style>
+h3 {
+    font-size: medium;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+.throw-round-section {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.player-selections {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.player-select-group {
+    flex: 1;
+}
+
+.throws-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.throws-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.throw-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.throw-input {
+    width: 100%;
+    text-align: center;
+}
+
+.player-throw-columns {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;  /* Allow wrapping on small screens */
+}
+
+.player-throw-column {
+    flex: 1 1;  /* Base width of 280px, but allow growing and shrinking */
+    min-width: 100%; /* Minimum width before wrapping */
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1rem; /* Add space between wrapped columns */
+}
+
+.throws-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.throw-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.player-select-group {
+    margin-bottom: 0.5rem;
+}
+
+.throw-input {
+    width: 100%;
+    text-align: center;
+}
+
+/* New styles for mobile-friendly throw inputs */
+.throw-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;  /* Center the input and label */
+}
+
+.throw-group label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.2rem;
+}
+
+.throw-input {
+    width: 4rem;  /* Fixed width for 3 characters + some padding */
+    height: 3rem; /* Taller input for better touch target */
+    text-align: center;
+    font-size: 1.5rem;  /* Larger font size */
+    font-weight: bold;
+    padding: 0.3rem;
+    border: 2px solid #ced4da;
+    border-radius: 8px;
+    background-color: white;
+}
+
+.throw-input:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    outline: none;
+}
+
+/* Make the inputs slightly bigger on very small screens */
+@media (max-width: 360px) {
+    .throw-input {
+        width: 3.5rem;
+        height: 3.5rem;
+        font-size: 1.8rem;
+    }
+}
+
+/* Layout adjustments for the player-throw columns */
+.player-throw-column {
+    padding: 0.5rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Add visual separation between player sections */
+.player-select-group {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 1rem;
+}
+
+.throws-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);  /* Two throws per row */
+    gap: 1rem;
+    padding: 0.5rem;
+}
+
+/* Adjust spacing on smaller screens */
+@media (max-width: 600px) {
+    .player-throw-columns {
+        flex-direction: column;
+    }
+    
+    .player-throw-column {
+        min-width: 100%;  /* Take full width on small screens */
+    }
+
+    .throw-input {
+        font-size: 1.6rem;
+    }
+}
+
+/* Further adjustments for very small screens */
+@media (max-width: 360px) {
+    .player-throw-column {
+        padding: 0.5rem;
+    }
+    
+    .throw-input {
+        font-size: 1.4rem;
+    }
+}
+</style>

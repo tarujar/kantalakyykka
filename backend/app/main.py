@@ -17,6 +17,7 @@ app.config.update(
     BABEL_TRANSLATION_DIRECTORIES=os.path.abspath(os.path.join(os.path.dirname(__file__), '../translations')),
     LANGUAGES=['fi', 'en']
 )
+app.jinja_env.globals.update(hasattr=hasattr)
 
 db = SQLAlchemy(app)
 babel = Babel()

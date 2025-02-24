@@ -29,27 +29,54 @@ class ThrowService:
         session.flush()
         return throw.id
 
-    def calculate_throw_index(self, set_index: int, throw_position: int, is_home_team: bool) -> int:
-        """Calculate the global throw index (1-20) based on set, position and team"""
-        # Each set has 10 throws (5 positions × 2 teams)
-        # First set starts with home team, second set with away team
-        base_index = (set_index - 1) * 10
-        position_offset = (throw_position - 1) * 2
+    def calculate_throw_index(self, game_set_index: int, throw_round: int, is_home_team: bool, player_position: int) -> int:
+        """Calculate the global throw index (1-20) based on set, round, team and player position"""
+        # Each throw round has 8 throws (4 per team)
+        throws_per_round = 8
+        # Calculate base index for the set and round
+        base_index = ((game_set_index - 1) * throw_round * throws_per_round) + \
+                    ((throw_round - 1) * throws_per_round)
         
-        if set_index == 1:
-            team_offset = 0 if is_home_team else 1
-        else:
-            team_offset = 1 if is_home_team else 0
-            
-        return base_index + position_offset + team_offset + 1
+        # Add team offset (0 for home team, 4 for away team)
+        team_offset = 4 if not is_home_team else 0
+        
+        # Add player position offset (0 for first player, 2 for second player)
+        player_offset = 2 * (player_position - 1)
+        
+        # Final index is base + team offset + player offset + 1
+        return base_index + team_offset + player_offset + 1
 
-    def save_round_throw(self, session: Session, game_id: int, set_index: int, throw_position: int,
-                        is_home_team: bool, player_id: int, throws: list[str], team_id: int, 
-                        existing_throw=None):
-        """Save a round of 4 consecutive throws"""
-        base_throw_index = self.calculate_throw_index(set_index, throw_position, is_home_team)
+    def get_player_for_round(self, throw_round: int, player_position: int, total_players: int) -> int:
+        """Get the player index (0-based) for the current round and position
         
-        # Save the four individual throws
+        Args:
+            throw_round: Current throw round (1-based)
+            player_position: Position in the round (1 for first player, 2 for second player)
+            total_players: Total number of players in team
+        
+        Returns:
+            0-based index of the player who should throw
+        """
+        # In a 4-player game:
+        # Round 1: Players 0,1 throw
+        # Round 2: Players 2,3 throw
+        # Round 3: Players 0,1 throw again
+        # Round 4: Players 2,3 throw again
+        base_player = (((throw_round - 1) // 2) * 2) % total_players
+        return (base_player + player_position - 1) % total_players
+
+    def save_round_throw(self, session: Session, game_id: int, game_set_index: int, throw_round: int,
+                        is_home_team: bool, player_id: int, throws: list[str], team_id: int, 
+                        existing_throw=None, player_position: int = 1):
+        """Save a round of 2 consecutive throws for a player"""
+        base_throw_index = self.calculate_throw_index(
+            game_set_index, 
+            throw_round, 
+            is_home_team, 
+            player_position
+        )
+
+        # Save the two individual throws
         throw_ids = []
         for i, throw_data in enumerate(throws):
             throw_index = base_throw_index + i
@@ -71,8 +98,8 @@ class ThrowService:
         else:
             round_throw = SingleRoundThrow(
                 game_id=game_id,
-                game_set_index=set_index,
-                throw_position=throw_position,
+                game_set_index=game_set_index,
+                throw_position=throw_round,
                 home_team=is_home_team,
                 team_id=team_id,
                 throw_1=throw_ids[0],
@@ -92,13 +119,15 @@ class ThrowService:
             existing_throw.throw_2 = throws[1]
             existing_throw.player_id = player_id
         else:
-            new_throw = ThrowRound(
+            new_throw = SingleRoundThrow(
                 game_id=game_id,
                 round_number=round_number,
                 throw_order=throw_order,
                 player_id=player_id,
                 throw_1=throws[0],
-                throw_2=throws[1],
+                throw_2=throws[1],                
+                throw_3=throws[2],
+                throw_4=throws[3],
                 is_home_team=is_home_team
             )
             session.add(new_throw)

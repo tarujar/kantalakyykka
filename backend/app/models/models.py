@@ -139,7 +139,7 @@ class SingleRoundThrow(Base):
     id = Column(Integer, primary_key=True, index=True)
     game_id = Column(Integer, ForeignKey("games.id"), nullable=False)
     game_set_index = Column(Integer, nullable=False)  # 1 or 2
-    throw_position = Column(Integer, nullable=False)  # 1-5 within a set. could be renamed as round_index
+    throw_position = Column(Integer, nullable=False)  # 1 to throw_round_amount
     home_team = Column(Boolean, nullable=False)
     team_id = Column(Integer, ForeignKey("series_registrations.id"))
     throw_1 = Column(Integer, ForeignKey("single_throw.id"))
@@ -154,10 +154,9 @@ class SingleRoundThrow(Base):
     throws_3 = relationship("SingleThrow", foreign_keys=[throw_3])
     throws_4 = relationship("SingleThrow", foreign_keys=[throw_4])
 
-    # Add constraints for valid set and position indices
     __table_args__ = (
-        CheckConstraint('game_set_index IN (1, 2)', name='valid_set_index'),
-        CheckConstraint('throw_position >= 1 AND throw_position <= 5', name='valid_position'),
+        CheckConstraint('game_set_index IN (1, 2)', name='valid_game_set_index'),
+        CheckConstraint('throw_position >= 1 AND throw_position <= 5', name='valid_throw_position'),
         UniqueConstraint('game_id', 'game_set_index', 'throw_position', 'home_team', name='unique_round_throw')
     )
 
