@@ -3,340 +3,44 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/game_score_sheet.css') }}">
-    <script src="{{ url_for('static', filename='js/game_score_utils.js') }}"></script>
-    <script>
-        var GAME_SCORES = {
+    <script type="module">
+        import {
+            validateAndCalculateTotalScores,
+            calculateTotalScores,
+            toggleForm,
+            syncFormData,
+            autoFillForm,
+            saveDraft,
+            loadDraft,
+            clearDraft,
+            showTab,
+            displayFormErrors,
+            clearFormErrors,
+            initializeGameScores,
+            initializeForm,
+            initializeMobileEventListeners,
+            validateThrowInput
+        } from "{{ url_for('static', filename='js/game_score_utils.js') }}";
+
+        // Initialize game scores
+        const GAME_SCORES = {
             "ROUND_SCORE_MIN": {{ game_constants.ROUND_SCORE_MIN | tojson }},
             "ROUND_SCORE_MAX": {{ game_constants.ROUND_SCORE_MAX | tojson }},
             "SINGLE_THROW_MIN": {{ game_constants.SINGLE_THROW_MIN | tojson }},
             "SINGLE_THROW_MAX": {{ game_constants.SINGLE_THROW_MAX | tojson }}
         };
 
-        // Convert string values to numbers when using them
-        function validateAndCalculateTotalScores(input) {
-            const value = parseInt(input.value);
-            const minScore = GAME_SCORES.ROUND_SCORE_MIN;
-            const maxScore = GAME_SCORES.ROUND_SCORE_MAX;
-            
-            if (value < minScore || value > maxScore) {
-                const message = `Round score must be between ${minScore} and ${maxScore}`;
-                alert(message);
-                input.value = '';
-                return;
-            }
-            calculateTotalScores();
-        }
-
-        function autoFillForm() {
-            // Set teams if they exist
-            const team1Select = document.querySelector('select[name="team_1_id"]');
-            const team2Select = document.querySelector('select[name="team_2_id"]');
-
-            if (team1Select && team1Select.options.length > 0) {
-                team1Select.selectedIndex = 1;  // Select first actual team
-            }
-
-            if (team2Select && team2Select.options.length > 0) {
-                team2Select.selectedIndex = 2;  // Select second actual team
-            }
-
-            // Auto-fill throw values with random valid scores
-            const possibleThrows = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
-            const throwInputs = document.querySelectorAll('input[name*="throw_"]');
-            throwInputs.forEach(input => {
-                const randomIndex = Math.floor(Math.random() * possibleThrows.length);
-                input.value = possibleThrows[randomIndex];
-            });
-
-            // Auto-fill player selections
-            const playerSelects = document.querySelectorAll('.player-select');
-            playerSelects.forEach(select => {
-                // Skip if no options available
-                if (select.options.length <= 1) return;
-                
-                // Get available options (excluding the first "Select Player" option)
-                const availableOptions = Array.from(select.options).slice(1);
-                
-                // Select a random player from available options
-                const randomIndex = Math.floor(Math.random() * availableOptions.length);
-                select.value = availableOptions[randomIndex].value;
-                
-                // Log for debugging
-                console.log(`Set ${select.name} to ${select.value}`);
-            });
-
-            // Calculate total scores after filling
-            calculateTotalScores();
-        }
-
-        function toggleForm() {
-            const desktopForm = document.querySelector('.desktop-form');
-            const mobileForm = document.querySelector('.mobile-form');
-            const toggleButton = document.querySelector('#toggleFormButton');
-            const formTypeInput = document.querySelector('input[name="form_type"]');
-
-            // Sync form data before switching
-            if (desktopForm.style.display === 'none') {
-                // Switching to desktop - sync mobile to desktop
-                syncFormData('.mobile-form', '.desktop-form');
-                desktopForm.style.display = 'block';
-                mobileForm.style.display = 'none';
-                toggleButton.textContent = '{{ _("Switch to Mobile Form") }}';
-                formTypeInput.value = 'desktop';
-            } else {
-                // Switching to mobile - sync desktop to mobile
-                syncFormData('.desktop-form', '.mobile-form');
-                desktopForm.style.display = 'none';
-                mobileForm.style.display = 'block';
-                toggleButton.textContent = '{{ _("Switch to Desktop Form") }}';
-                formTypeInput.value = 'mobile';
-            }
-        }
-
-        function syncFormData(sourceFormSelector, targetFormSelector) {
-            const sourceForm = document.querySelector(sourceFormSelector);
-            const targetForm = document.querySelector(targetFormSelector);
-
-            // Sync all input fields
-            sourceForm.querySelectorAll('input[name], select[name]').forEach(sourceInput => {
-                const inputName = sourceInput.getAttribute('name');
-                const targetInput = targetForm.querySelector(`[name="${inputName}"]`);
-                if (targetInput) {
-                    targetInput.value = sourceInput.value;
-                }
-            });
-        }
-
-        function adjustMobileFormLayout(gameType, throwRoundAmount) {
-            const mobileForm = document.querySelector('.mobile-form');
-
-            if (!mobileForm) return;
-
-            // Adjust the form layout based on the game type
-            if (gameType === 'single') {
-                // Example: Single game type
-                mobileForm.classList.add('single-game-layout');
-                mobileForm.classList.remove('team-game-layout');
-            } else {
-                // Example: Team game type
-                mobileForm.classList.add('team-game-layout');
-                mobileForm.classList.remove('single-game-layout');
-            }
-
-            // Adjust the form layout based on the throw round amount
-            const roundHeaders = mobileForm.querySelectorAll('.round-header');
-            roundHeaders.forEach((header, index) => {
-                if (index < throwRoundAmount) {
-                    header.style.display = 'block';
-                } else {
-                    header.style.display = 'none';
-                }
-            });
-
-            const singleThrowForms = mobileForm.querySelectorAll('.single-throw-form');
-            singleThrowForms.forEach((form, index) => {
-                if (index < throwRoundAmount * 8) {
-                    form.style.display = 'block';
-                } else {
-                    form.style.display = 'none';
-                }
-            });
-        }
-
-        const DRAFT_KEY = 'gameScoreSheetDraft_' + '{{ request.args.get("id", "") }}';
-
-        function saveDraft() {
-            const form = document.querySelector('form');
-            const formData = new FormData(form);
-            const draftData = {};
-            
-            for (const [key, value] of formData.entries()) {
-                draftData[key] = value;
-            }
-            
-            localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
-            showToast('Draft saved successfully');
-        }
-
-        function loadDraft() {
-            const draftData = localStorage.getItem(DRAFT_KEY);
-            if (!draftData) {
-                showToast('No draft found');
-                return;
-            }
-
-            const data = JSON.parse(draftData);
-            const form = document.querySelector('form');
-            
-            for (const [key, value] of Object.entries(data)) {
-                const input = form.querySelector(`[name="${key}"]`);
-                if (input) {
-                    input.value = value;
-                }
-            }
-            
-            showToast('Draft loaded successfully');
-        }
-
-        function clearDraft() {
-            if (confirm('Are you sure you want to clear the draft?')) {
-                localStorage.removeItem(DRAFT_KEY);
-            }
-        }
-
-        function showTab(tabId) {
-            // Hide all tab contents
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-                // Keep inputs focusable but visually hidden
-                content.style.position = 'absolute';
-                content.style.left = '-9999px';
-            });
-
-            // Show selected tab content
-            const selectedTab = document.getElementById(tabId);
-            if (selectedTab) {
-                selectedTab.classList.add('active');
-                selectedTab.style.position = 'relative';
-                selectedTab.style.left = '0';
-            }
-
-            // Remove active class from all tab buttons
-            const tabButtons = document.querySelectorAll('.tab-button');
-            tabButtons.forEach(button => {
-                button.classList.remove('active');
-            });
-
-            // Add active class to clicked button
-            const selectedButton = document.querySelector(`.tab-button[onclick*="${tabId}"]`);
-            if (selectedButton) {
-                selectedButton.classList.add('active');
-            }
-
-            // Save last active tab to localStorage
-            localStorage.setItem('lastActiveTab', tabId);
-        }
-
-        function calculateTotalScores() {
-            // Get score inputs
-            const score11 = parseInt(document.querySelector('input[name="score_1_1"]').value) || 0;
-            const score12 = parseInt(document.querySelector('input[name="score_1_2"]').value) || 0;
-            const score21 = parseInt(document.querySelector('input[name="score_2_1"]').value) || 0;
-            const score22 = parseInt(document.querySelector('input[name="score_2_2"]').value) || 0;
-
-            // Calculate totals
-            const team1Total = score11 + score12;
-            const team2Total = score21 + score22;
-
-            // Update total score displays
-            document.querySelector('#team1-total').textContent = team1Total;
-            document.querySelector('#team2-total').textContent = team2Total;
-        }
-
-        function displayFormErrors(errors) {
-            // Clear existing error messages
-            clearFormErrors();
-            
-            // Display new error messages
-            for (const [fieldName, errorMessages] of Object.entries(errors)) {
-                const input = document.querySelector(`[name="${fieldName}"]`);
-                if (input) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'invalid-feedback d-block';
-                    errorDiv.textContent = errorMessages.join(', ');
-                    input.classList.add('is-invalid');
-                    input.parentNode.appendChild(errorDiv);
-                }
-            }
-        }
-
-        function clearFormErrors() {
-            document.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
-            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form');
-            if (form) {
-                form.addEventListener('submit', function(event) {
-                    // Get the active form (mobile or desktop)
-                    const activeForm = document.querySelector('.mobile-form').style.display === 'none' 
-                        ? '.desktop-form' 
-                        : '.mobile-form';
-                    
-                    // Sync the active form's data to the other form before submission
-                    const inactiveForm = activeForm === '.desktop-form' ? '.mobile-form' : '.desktop-form';
-                    syncFormData(activeForm, inactiveForm);
-
-                    // Log form submission for debugging
-                    console.log('Form submission started from ' + activeForm);
-                    const formData = new FormData(form);
-                    for (const [key, value] of formData.entries()) {
-                        console.log(`${key}: ${value}`);
-                    }
-                });
-            }
-
-            // Initialize form visibility
-            const desktopForm = document.querySelector('.desktop-form');
-            const mobileForm = document.querySelector('.mobile-form');
-            const toggleButton = document.querySelector('#toggleFormButton');
-            const formTypeInput = document.querySelector('input[name="form_type"]');
-
-            // Use active_view from server or fallback to screen width
+        // Initialize game scores (this will also set up global functions)
+        initializeGameScores(GAME_SCORES);
+        
+        // Initialize form on page load
+        document.addEventListener('DOMContentLoaded', () => {
             const activeView = '{{ active_view|default("") }}' || (window.innerWidth <= 768 ? 'mobile' : 'desktop');
-            
-            if (activeView === 'mobile') {
-                desktopForm.style.display = 'none';
-                mobileForm.style.display = 'block';
-                toggleButton.textContent = '{{ _("Switch to Desktop Form") }}';
-                formTypeInput.value = 'mobile';
-            } else {
-                desktopForm.style.display = 'block';
-                mobileForm.style.display = 'none';
-                toggleButton.textContent = '{{ _("Switch to Mobile Form") }}';
-                formTypeInput.value = 'desktop';
-            }
-
-            // Adjust mobile form layout based on the game type and throw round amount
-            adjustMobileFormLayout('{{ game_type }}', '{{ throw_round_amount }}');
-
-            // Restore last active tab
-            const lastActiveTab = localStorage.getItem('lastActiveTab');
-            if (lastActiveTab) {
-                showTab(lastActiveTab);
-            }
-
-            // Add change event listeners to score inputs
-            const scoreInputs = document.querySelectorAll('.score-input');
-            scoreInputs.forEach(input => {
-                input.addEventListener('change', calculateTotalScores);
-            });
+            initializeForm(activeView);
+            initializeMobileEventListeners();
+            showTab('set1');
         });
     </script>
-
-    <style>
-        /* Add toast styles */
-        .toast-notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 4px;
-            z-index: 2000;
-            animation: fadeInOut 3s ease-in-out;
-        }
-
-        @keyframes fadeInOut {
-            0% { opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-    </style>
 {% endblock %}
 
 {% block edit_form %}
