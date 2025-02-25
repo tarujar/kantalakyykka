@@ -129,3 +129,43 @@ def load_existing_throws(session, form, game):
         except Exception as e:
             logger.error(f"Error loading throw data: {e}", exc_info=True)
             continue
+
+import logging
+from app.models.models import ThrowType
+
+logger = logging.getLogger(__name__)
+
+def process_throw_data(throw_data):
+    """Process individual throw data"""
+    if not throw_data:
+        return None, 0
+
+    value = str(throw_data).strip().upper()
+    
+    # Handle special throw types
+    if value in ['H', 'F', 'E', '']:
+        return {
+            'H': ('HAUKI', 0),
+            'F': ('FAULT', 0),
+            'E': ('E', 1),
+            '': ('E', 1)
+        }[value]
+
+    # Handle numeric scores
+    try:
+        score = int(value)
+        if -40 <= score <= 80:
+            return 'VALID', score
+        logger.error(f"Invalid score value: {score}")
+    except ValueError:
+        logger.error(f"Invalid throw value: {value}")
+    
+    return None, 0
+
+def process_game_scores(game, form_data):
+    """Process and update game scores from form data"""
+    game.score_1_1 = int(form_data.get('score_1_1', 0))
+    game.score_1_2 = int(form_data.get('score_1_2', 0))
+    game.score_2_1 = int(form_data.get('score_2_1', 0))
+    game.score_2_2 = int(form_data.get('score_2_2', 0))
+    return game

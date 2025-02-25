@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from app.models.models import ThrowType, SingleThrow, SingleRoundThrow
+from app.utils.game_utils import process_throw_data  # Add this import
 import logging
-
+from app.utils.throw_input import ThrowInputField
 class ThrowService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ class ThrowService:
     def _save_single_throw(self, session: Session, throw_data, player_id: int, throw_index: int) -> int:
         """Save a single throw and return its ID"""
         try:
-            throw_type, throw_score = self._parse_throw_string(str(throw_data))
+            throw_type, throw_score = process_throw_data(str(throw_data))  # Use imported function
             throw = SingleThrow(
                 throw_type=throw_type,
                 throw_score=throw_score,

@@ -6,7 +6,7 @@
 
 {% block list_row_actions %}
     {{ super() }}
-    <a href="{{ url_for('game_score_sheet.edit_form_view', id=row.id) }}" class="btn btn-secondary">
+    <a href="{{ url_for('game_score_sheet.edit_view', id=row.id) }}" class="btn btn-secondary">
         <i class="fa fa-edit"></i> {{ _('Lisää heitot') }}
     </a>
 {% endblock %}

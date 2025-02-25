@@ -1,0 +1,78 @@
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 4px;
+    z-index: 2000;
+    animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.tab-content:not(.active) {
+    position: absolute;
+    left: -9999px;
+}
+
+.tab-content.active {
+    position: relative;
+    left: 0;
+}
+
+/* Base styles */
+.game-input-form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Round section styles */
+.round-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Player throws styles */
+.player-throws {
+    background: white;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+.throw-input {
+    width: 70px;
+    text-align: center;
+    font-size: 1.2em;
+    padding: 5px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .throw-input {
+        width: 60px;
+        height: 44px;
+        font-size: 1.4em;
+    }
+    
+    .player-throws {
+        margin-bottom: 15px;
+    }
+}
+
+/* Score input styles */
+.score-input {
+    font-size: 1.2em;
+    text-align: center;
+    font-weight: bold;
+}

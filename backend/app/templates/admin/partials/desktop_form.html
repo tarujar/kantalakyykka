@@ -46,148 +46,128 @@ Team 1: Player 3
 Team 1: Player 4
 -->
 <div class="desktop-form">
-    <div class="help-text mb-3">
-        <strong>Valid inputs:</strong>
-        <ul>
-            <li>Score (-40 to 80)</li>
-            <li>H = Hauki (0 points)</li>
-            <li>F = Fault (0 points)</li>
-            <li>E = Empty/Unused (1 point)</li>
-        </ul>
-    </div>
+    <div class="card">
+        <div class="card-body">
+            <!-- Team selection -->
+            <div class="form-row mb-4">
+                <div class="col-md-6">
+                    <label>{{ _('Team 1') }}</label>
+                    {{ form.team_1_id(class='form-control') }}
+                </div>
+                <div class="col-md-6">
+                    <label>{{ _('Team 2') }}</label>
+                    {{ form.team_2_id(class='form-control') }}
+                </div>
+            </div>
 
-    <div class="table-responsive">
-        <table class="game-score-sheet-table table table-bordered">
-            <thead>
-                <tr>
-                    <th>{{ _('Team') }}</th>
-                    <th>{{ _('Player') }}</th>
-                    <th>{{ _('Throw 1') }}</th>
-                    <th>{{ _('Throw 2') }}</th>
-                    <th>{{ _('Throw 3') }}</th>
-                    <th>{{ _('Throw 4') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Round 1 -->
-                {% for round_num in [1, 2] %}
-                    <tr class="round-header">
-                        <td colspan="6">{{ _('Round') }} {{ round_num }}</td>
+            <!-- Game scores table -->
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>{{ _('Round') }}</th>
+                        <th colspan="2">{{ _('Team 1') }}</th>
+                        <th colspan="2">{{ _('Team 2') }}</th>
                     </tr>
-
-                    {# Define which team goes first based on round number #}
-                    {% set first_team = form.team_1_round_throws if round_num == 1 else form.team_2_round_throws %}
-                    {% set second_team = form.team_2_round_throws if round_num == 1 else form.team_1_round_throws %}
-                    {% set first_team_num = '1' if round_num == 1 else '2' %}
-                    {% set second_team_num = '2' if round_num == 1 else '1' %}
-
-                    {# First two players from first team #}
-                    {% for player_index in [0, 1] %}
-                        {% set throw_form = first_team.entries[0] %}
-                        {% set single_throw = throw_form['round_' ~ round_num].entries[player_index] %}
-                        <tr class="single-throw-form">
-                            <td>{{ _(first_team_num ~ '. ') }}</td>
-                            <td>
-                                <select name="{{ single_throw.player_id.name }}" class="form-control" required>
-                                    {% for value, label in single_throw.player_id.choices %}
-                                        <option value="{{ value }}" {% if value == single_throw.player_id.data %}selected{% endif %}>{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            {% for i in range(1, 5) %}
-                                {{ render_throw_input(single_throw['throw_' ~ i]) }}
-                            {% endfor %}
-                            <input type="hidden" name="{{ single_throw.game_set_index.name }}" value="{{ round_num }}">
-                            <input type="hidden" name="{{ single_throw.throw_position.name }}" value="{{ player_index + 1 }}">
-                            <input type="hidden" name="{{ single_throw.home_team.name }}" value="{{ 'true' if first_team_num == '1' else 'false' }}">
-                        </tr>
-                    {% endfor %}
-
-                    {# First two players from second team #}
-                    {% for player_index in [0, 1] %}
-                        {% set throw_form = second_team.entries[0] %}
-                        {% set single_throw = throw_form['round_' ~ round_num].entries[player_index] %}
-                        <tr class="single-throw-form">
-                            <td>{{ _(second_team_num ~ '. ') }}</td>
-                            <td>
-                                <select name="{{ single_throw.player_id.name }}" class="form-control" required>
-                                    {% for value, label in single_throw.player_id.choices %}
-                                        <option value="{{ value }}" {% if value == single_throw.player_id.data %}selected{% endif %}>{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            {% for i in range(1, 5) %}
-                                {{ render_throw_input(single_throw['throw_' ~ i]) }}
-                            {% endfor %}
-                            <input type="hidden" name="{{ single_throw.game_set_index.name }}" value="{{ round_num }}">
-                            <input type="hidden" name="{{ single_throw.throw_position.name }}" value="{{ player_index + 1 }}">
-                            <input type="hidden" name="{{ single_throw.home_team.name }}" value="{{ 'true' if second_team_num == '1' else 'false' }}">
-                        </tr>
-                    {% endfor %}
-
-                    {# Last two players from first team #}
-                    {% for player_index in [2, 3] %}
-                        {% set throw_form = first_team.entries[0] %}
-                        {% set single_throw = throw_form['round_' ~ round_num].entries[player_index] %}
-                        <tr class="single-throw-form">
-                            <td>{{ _(first_team_num ~ '. ') }}</td>
-                            <td>
-                                <select name="{{ single_throw.player_id.name }}" class="form-control" required>
-                                    {% for value, label in single_throw.player_id.choices %}
-                                        <option value="{{ value }}" {% if value == single_throw.player_id.data %}selected{% endif %}>{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            {% for i in range(1, 5) %}
-                                {{ render_throw_input(single_throw['throw_' ~ i]) }}
-                            {% endfor %}
-                            <input type="hidden" name="{{ single_throw.game_set_index.name }}" value="{{ round_num }}">
-                            <input type="hidden" name="{{ single_throw.throw_position.name }}" value="{{ player_index + 1 }}">
-                            <input type="hidden" name="{{ single_throw.home_team.name }}" value="{{ 'true' if first_team_num == '1' else 'false' }}">
-                        </tr>
-                    {% endfor %}
-
-                    {# Last two players from second team #}
-                    {% for player_index in [2, 3] %}
-                        {% set throw_form = second_team.entries[0] %}
-                        {% set single_throw = throw_form['round_' ~ round_num].entries[player_index] %}
-                        <tr class="single-throw-form">
-                            <td>{{ _(second_team_num ~ '. ') }}</td>
-                            <td>
-                                <select name="{{ single_throw.player_id.name }}" class="form-control" required>
-                                    {% for value, label in single_throw.player_id.choices %}
-                                        <option value="{{ value }}" {% if value == single_throw.player_id.data %}selected{% endif %}>{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            {% for i in range(1, 5) %}
-                                {{ render_throw_input(single_throw['throw_' ~ i]) }}
-                            {% endfor %}
-                            <input type="hidden" name="{{ single_throw.game_set_index.name }}" value="{{ round_num }}">
-                            <input type="hidden" name="{{ single_throw.throw_position.name }}" value="{{ player_index + 1 }}">
-                            <input type="hidden" name="{{ single_throw.home_team.name }}" value="{{ 'true' if second_team_num == '1' else 'false' }}">
-                        </tr>
-                    {% endfor %}
-
-                    <!-- Display round scores -->
-                    <tr class="round-score">
-                        <td colspan="2">{{ _('Round') }} {{ round_num }} {{ _('Scores') }}</td>
-                        <td colspan="2">
-                            {{ render_score_input(form, '1', round_num) }}
+                </thead>
+                <tbody>
+                    {% for round_num in range(1, throw_round_amount + 1) %}
+                    <tr>
+                        <td class="align-middle text-center">{{ round_num }}</td>
+                        <!-- Team 1 players -->
+                        <td></td>
+                            <select name="set_1_round_{{ round_num }}_team_1_player_1" class="form-control player-select">
+                                <option value="">{{ _('Select Player') }}</option>
+                                {% for id, name in team1_players %}
+                                    <option value="{{ id }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-2">
+                                <input type="text" 
+                                       name="set_1_round_{{ round_num }}_team_1_throw_1"
+                                       class="form-control throw-input"
+                                       placeholder="{{ _('Throw') }} 1">
+                                <input type="text"
+                                       name="set_1_round_{{ round_num }}_team_1_throw_2"
+                                       class="form-control throw-input mt-1"
+                                       placeholder="{{ _('Throw') }} 2">
+                            </div>
                         </td>
-                        <td colspan="2">
-                            {{ render_score_input(form, '2', round_num) }}
+                        <td>
+                            <select name="set_1_round_{{ round_num }}_team_1_player_2" class="form-control player-select">
+                                <option value="">{{ _('Select Player') }}</option>
+                                {% for id, name in team1_players %}
+                                    <option value="{{ id }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-2">
+                                <input type="text"
+                                       name="set_1_round_{{ round_num }}_team_1_throw_3"
+                                       class="form-control throw-input"
+                                       placeholder="{{ _('Throw') }} 3">
+                                <input type="text"
+                                       name="set_1_round_{{ round_num }}_team_1_throw_4"
+                                       class="form-control throw-input mt-1"
+                                       placeholder="{{ _('Throw') }} 4">
+                            </div>
+                        </td>
+                        <!-- Team 2 players -->
+                        <td>
+                            <select name="set_1_round_{{ round_num }}_team_2_player_1" class="form-control player-select">
+                                <option value="">{{ _('Select Player') }}</option>
+                                {% for id, name in team2_players %}
+                                    <option value="{{ id }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-2">
+                                <input type="text"
+                                       name="set_1_round_{{ round_num }}_team_2_throw_1"
+                                       class="form-control throw-input"
+                                       placeholder="{{ _('Throw') }} 1">
+                                <input type="text"
+                                       name="set_1_round_{{ round_num }}_team_2_throw_2"
+                                       class="form-control throw-input mt-1"
+                                       placeholder="{{ _('Throw') }} 2">
+                            </div>
+                        </td>
+                        <td>
+                            <select name="set_1_round_{{ round_num }}_team_2_player_2" class="form-control player-select">
+                                <option value="">{{ _('Select Player') }}</option>
+                                {% for id, name in team2_players %}
+                                    <option value="{{ id }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-2">
+                                <input type="text"
+                                       name="set_1_round_{{ round_num }}_team_2_throw_3"
+                                       class="form-control throw-input"
+                                       placeholder="{{ _('Throw') }} 3">
+                                <input type="text"
+                                       name="set_1_round_{{ round_num }}_team_2_throw_4"
+                                       class="form-control throw-input mt-1"
+                                       placeholder="{{ _('Throw') }} 4">
+                            </div>
                         </td>
                     </tr>
-                {% endfor %}
-
-                <!-- Display end scores -->
-                <tr class="end-score">
-                    <td colspan="2">{{ _('End Scores') }}</td>
-                    <td colspan="2">{{ form.end_score_team_1.data if form.end_score_team_1.data is not none else 0 }}</td>
-                    <td colspan="2">{{ form.end_score_team_2.data if form.end_score_team_2.data is not none else 0 }}</td>
-                </tr>
-            </tbody>
-        </table>
+                    {% endfor %}
+                    <!-- Round scores -->
+                    <tr class="table-secondary">
+                        <td>{{ _('Round Score') }}</td>
+                        <td colspan="2">
+                            {{ form.score_1_1(class='form-control text-center score-input', 
+                                            onchange='validateAndCalculateTotalScores(this)') }}
+                        </td>
+                        <td colspan="2">
+                            {{ form.score_2_1(class='form-control text-center score-input',
+                                            onchange='validateAndCalculateTotalScores(this)') }}
+                        </td>
+                    </tr>
+                    <tr class="table-dark">
+                        <td>{{ _('Total Score') }}</td>
+                        <td colspan="2" class="text-center" id="team1-total">0</td>
+                        <td colspan="2" class="text-center" id="team2-total">0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
