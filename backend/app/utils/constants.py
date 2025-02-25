@@ -1,3 +1,5 @@
+from enum import Enum
+
 class GameScores:
     SINGLE_THROW_MIN = -40 # kaikki pappi-kyykät rajalta sisään
     SINGLE_THROW_MAX = 80 #kaikki kyykät ulos
@@ -17,3 +19,20 @@ class GameScores:
     @classmethod
     def validate_total_score(cls, value: int) -> bool:
         return cls.TOTAL_SCORE_MIN <= value <= cls.TOTAL_SCORE_MAX
+
+class FormDefaults:
+    NO_PLAYER_CHOICE = ('-1', '-- Select Player --')
+    NO_PLAYERS_LIST = [('-1', 'No players')]
+
+class FormFields:
+    PLAYER_1 = 'player_1'
+    PLAYER_2 = 'player_2'
+    THROW_1 = 'throw_1'
+    THROW_2 = 'throw_2'
+    THROW_3 = 'throw_3'
+    THROW_4 = 'throw_4'
+    
+    SCORE_1_1 = 'score_1_1'
+    SCORE_1_2 = 'score_1_2'
+    SCORE_2_1 = 'score_2_1'
+    SCORE_2_2 = 'score_2_2'

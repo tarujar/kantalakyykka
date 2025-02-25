@@ -8,7 +8,7 @@ from app.utils.game_utils import load_existing_throws, set_player_choices
 from app.services.game_service import GameService
 from app.forms.throw_forms import GameScoreSheetForm 
 import logging
-from app.utils.game_constants import GameScores  # Ensure this import is correct
+from app.utils.constants import GameScores  # Ensure this import is correct
 
 class GameScoreSheetAdmin(ModelView):  # Changed from CustomModelView to ModelView
     # Configuration

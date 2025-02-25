@@ -3,7 +3,7 @@ from wtforms import SelectField, IntegerField, BooleanField, FormField, FieldLis
 from flask_wtf import FlaskForm
 from wtforms.validators import DataRequired, ValidationError, NumberRange
 from app.utils.throw_input import ThrowInputField
-from app.utils.game_constants import GameScores
+from app.utils.constants import GameScores
 import logging
 
 class SingleRoundThrowForm(FlaskForm):
