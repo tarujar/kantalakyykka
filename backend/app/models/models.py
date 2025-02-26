@@ -81,8 +81,8 @@ class SeriesRegistration(Base):
 class TeamHistory(Base):
     __tablename__ = "team_history"
     id = Column(Integer, primary_key=True, index=True)
-    previous_registration_id = Column(Integer, ForeignKey("series_registrations.id"))  # Changed from teams_in_series
-    next_registration_id = Column(Integer, ForeignKey("series_registrations.id"))  # Changed from teams_in_series
+    previous_registration_id = Column(Integer, ForeignKey("series_registrations.id"))  
+    next_registration_id = Column(Integer, ForeignKey("series_registrations.id")) 
     relation_type = Column(String, nullable=False)
     notes = Column(Text)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(timezone.utc))

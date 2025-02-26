@@ -79,13 +79,27 @@ CREATE TABLE series_registrations (
     -- Removed the invalid CHECK constraint
 );
 
--- Teams that register in series // Joukkueet
+-- First drop the existing table
+DROP TABLE IF EXISTS roster_players_in_series CASCADE;
+
+-- Recreate with correct constraints
 CREATE TABLE roster_players_in_series (
-    registration_id INTEGER REFERENCES series_registrations(id),
-    player_id INTEGER REFERENCES players(id),
+    registration_id INTEGER NOT NULL,
+    player_id INTEGER NOT NULL,
     PRIMARY KEY (registration_id, player_id),
-    UNIQUE(registration_id, player_id)
+    FOREIGN KEY (registration_id) 
+        REFERENCES series_registrations(id) 
+        ON DELETE CASCADE 
+        ON UPDATE CASCADE,
+    FOREIGN KEY (player_id) 
+        REFERENCES players(id) 
+        ON DELETE RESTRICT 
+        ON UPDATE CASCADE
 );
+
+-- Add indexes for better performance
+CREATE INDEX idx_roster_registration_id ON roster_players_in_series(registration_id);
+CREATE INDEX idx_roster_player_id ON roster_players_in_series(player_id);
 
 CREATE TABLE team_history (
     id SERIAL PRIMARY KEY,
