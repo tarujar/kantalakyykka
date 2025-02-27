@@ -1,68 +1,83 @@
 from sqlalchemy.orm import Session
 from app.models.models import ThrowType, SingleThrow, SingleRoundThrow
-from app.utils.game_utils import process_throw_data  # Add this import
+from app.utils.game_utils import process_throw_data
 import logging
 from app.utils.throw_input import ThrowInputField
+
 class ThrowService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
     def save_round_throw(self, session: Session, game_id: int, game_set_index: int, 
                         throw_round: int, is_home_team: bool, player_1_id: str, 
-                        player_2_id: str, throws: list, team_id: int):
-        """Save throws for both players in a round"""
+                        player_2_id: str, throws: list, team_id: int) -> bool:
+        """
+        Save all throws for a complete round (both players, 4 throws total)
+        
+        Args:
+            session: Database session
+            game_id: Game ID
+            game_set_index: Set number (1 or 2)
+            throw_round: Round number within the set
+            is_home_team: Whether this is home team
+            player_1_id: ID of first player
+            player_2_id: ID of second player
+            throws: List of 4 throw values
+            team_id: Team ID
+        """
         try:
-            # Convert player IDs to integers
-            p1_id = int(player_1_id)
-            p2_id = int(player_2_id)
+            # Get or create round throw record
+            round_throw = self._get_or_create_round_throw(
+                session, game_id, game_set_index, throw_round, is_home_team, team_id
+            )
 
-            self.logger.debug(f"Saving round throw with players {p1_id}, {p2_id}")
+            # Process throws for both players
+            throw_ids = []
+            for i, (player_id, throws_pair) in enumerate([
+                (int(player_1_id), throws[0:2]),
+                (int(player_2_id), throws[2:4])
+            ]):
+                for j, throw in enumerate(throws_pair):
+                    throw_index = throw_round * 4 - (3 - (i * 2 + j))
+                    throw_id = self._save_single_throw(session, throw, player_id, throw_index)
+                    throw_ids.append(throw_id)
 
-            # Find or create round throw
-            round_throw = session.query(SingleRoundThrow).filter_by(
-                game_id=game_id,
-                game_set_index=game_set_index,
-                throw_position=throw_round,
-                home_team=is_home_team
-            ).first()
-
-            if not round_throw:
-                round_throw = SingleRoundThrow(
-                    game_id=game_id,
-                    game_set_index=game_set_index,
-                    throw_position=throw_round,
-                    home_team=is_home_team,
-                    team_id=team_id
-                )
-
-            # Save throws for player 1 (throws[0] and throws[1])
-            throw_1_id = self._save_single_throw(session, throws[0], p1_id, throw_round * 4 - 3)
-            throw_2_id = self._save_single_throw(session, throws[1], p1_id, throw_round * 4 - 2)
-            
-            # Save throws for player 2 (throws[2] and throws[3])
-            throw_3_id = self._save_single_throw(session, throws[2], p2_id, throw_round * 4 - 1)
-            throw_4_id = self._save_single_throw(session, throws[3], p2_id, throw_round * 4)
-
-            # Update round throw with new throw IDs
-            round_throw.throw_1 = throw_1_id
-            round_throw.throw_2 = throw_2_id
-            round_throw.throw_3 = throw_3_id
-            round_throw.throw_4 = throw_4_id
-
+            # Update round throw record with new throw IDs
+            round_throw.throw_1, round_throw.throw_2, round_throw.throw_3, round_throw.throw_4 = throw_ids
             session.add(round_throw)
             session.flush()
 
-            self.logger.debug(f"Saved throws for round {throw_round}: {throw_1_id}, {throw_2_id}, {throw_3_id}, {throw_4_id}")
             return True
 
         except Exception as e:
             self.logger.error(f"Error saving round throw: {e}", exc_info=True)
             raise
 
+    def _get_or_create_round_throw(self, session: Session, game_id: int, game_set_index: int,
+                                 throw_round: int, is_home_team: bool, team_id: int) -> SingleRoundThrow:
+        """Get existing round throw record or create new one"""
+        round_throw = session.query(SingleRoundThrow).filter_by(
+            game_id=game_id,
+            game_set_index=game_set_index,
+            throw_position=throw_round,
+            home_team=is_home_team
+        ).first()
+
+        if not round_throw:
+            round_throw = SingleRoundThrow(
+                game_id=game_id,
+                game_set_index=game_set_index,
+                throw_position=throw_round,
+                home_team=is_home_team,
+                team_id=team_id
+            )
+
+        return round_throw
+
     def _save_single_throw(self, session: Session, throw_data, player_id: int, throw_index: int) -> int:
-        """Save a single throw and return its ID"""
+        """Process and save a single throw, return its ID"""
         try:
-            throw_type, throw_score = process_throw_data(str(throw_data))  # Use imported function
+            throw_type, throw_score = process_throw_data(str(throw_data))
             throw = SingleThrow(
                 throw_type=throw_type,
                 throw_score=throw_score,
@@ -158,9 +173,10 @@ class ThrowService:
         base_player = (((throw_round - 1) // 2) * 2) % total_players
         return (base_player + player_position - 1) % total_players
 
-    def save_throw_round(self, session, game_id: int, round_number: int, throw_order: int, player_id: int, 
-                        throws: list[str], is_home_team: bool, existing_throw=None):
-        """Save a throw round (2 consecutive throws by one player)"""
+    def save_throw_round(self, session, game_id: int, round_number: int, throw_order: int, 
+                        player_id: int, throws: list[str], is_home_team: bool, 
+                        existing_throw=None):
+        """Save or update a throw round record"""
         if existing_throw:
             existing_throw.throw_1 = throws[0]
             existing_throw.throw_2 = throws[1]
@@ -172,7 +188,7 @@ class ThrowService:
                 throw_order=throw_order,
                 player_id=player_id,
                 throw_1=throws[0],
-                throw_2=throws[1],                
+                throw_2=throws[1],
                 throw_3=throws[2],
                 throw_4=throws[3],
                 is_home_team=is_home_team
@@ -180,24 +196,32 @@ class ThrowService:
             session.add(new_throw)
 
     def get_throw_sequence(self, game_type, round_number: int, is_home_team: bool) -> list[dict]:
-        """Get the correct throw sequence based on game type and round number"""
-        if game_type.team_size == 2:
-            # 2-player team sequence repeats every 2 throws
-            player_index = (round_number - 1) % 2
-            return [
-                {"order": 1, "player_index": player_index},
-                {"order": 2, "player_index": (player_index + 1) % 2}
-            ]
-        elif game_type.team_size == 4:
-            # 4-player team sequence repeats every 4 throws
-            base_index = ((round_number - 1) * 2) % 4
-            return [
-                {"order": 1, "player_index": base_index},
-                {"order": 2, "player_index": (base_index + 1) % 4}
-            ]
-        else:
-            # Personal league - single player throws all
-            return [{"order": 1, "player_index": 0}]
+        """Get the throwing sequence based on game type and round number"""
+        # Map team sizes to their sequence logic
+        sequence_handlers = {
+            2: self._get_two_player_sequence,
+            4: self._get_four_player_sequence
+        }
+        
+        handler = sequence_handlers.get(game_type.team_size, self._get_personal_sequence)
+        return handler(round_number)
+
+    def _get_two_player_sequence(self, round_number: int) -> list[dict]:
+        player_index = (round_number - 1) % 2
+        return [
+            {"order": 1, "player_index": player_index},
+            {"order": 2, "player_index": (player_index + 1) % 2}
+        ]
+
+    def _get_four_player_sequence(self, round_number: int) -> list[dict]:
+        base_index = ((round_number - 1) * 2) % 4
+        return [
+            {"order": 1, "player_index": base_index},
+            {"order": 2, "player_index": (base_index + 1) % 4}
+        ]
+
+    def _get_personal_sequence(self, round_number: int) -> list[dict]:
+        return [{"order": 1, "player_index": 0}]
 
     def _process_throw_data(self, throw_data):
         """Process throw data and return (throw_type, throw_score)"""

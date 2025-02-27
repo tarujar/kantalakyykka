@@ -154,6 +154,29 @@ ALTER TABLE games
     ALTER COLUMN team_2_id SET NOT NULL;
 
 -- Joukkueiden heittotulokset
+
+-- Drop and recreate single_round_throws with correct foreign key
+DROP TABLE IF EXISTS single_round_throws CASCADE;
+
+CREATE TABLE single_round_throws (
+    id SERIAL PRIMARY KEY,
+    game_id INTEGER REFERENCES games(id),
+    game_set_index INTEGER NOT NULL,
+    throw_position INTEGER NOT NULL,
+    home_team BOOLEAN NOT NULL,
+    team_id INTEGER REFERENCES series_registrations(id),  -- Changed from teams_in_series to series_registrations
+    throw_1 INTEGER REFERENCES single_throw(id),
+    throw_2 INTEGER REFERENCES single_throw(id),
+    throw_3 INTEGER REFERENCES single_throw(id),
+    throw_4 INTEGER REFERENCES single_throw(id),
+    CONSTRAINT valid_throw_position CHECK (throw_position BETWEEN 1 AND 5),
+    CONSTRAINT valid_game_set_index CHECK (game_set_index BETWEEN 1 AND 2),
+    UNIQUE (game_id, game_set_index, throw_position, home_team)
+);
+
+-- Add index for performance
+CREATE INDEX idx_single_round_throws_team_id ON single_round_throws(team_id);
+
 CREATE TABLE single_throw (
     id SERIAL PRIMARY KEY,
     throw_type throw_result,
@@ -176,22 +199,6 @@ CREATE TABLE single_throw (
 -- jokaisessa erässä on 4 tai 5 heittokierrosta
 -- 1 erän 1 heittokierros on yhden pelaajan 4 heittoa
 -- 2 erän 1 heittokierros on yhden pelaajan 4 heittoa jne
-CREATE TABLE single_round_throws (
-    id SERIAL PRIMARY KEY,
-    game_id INTEGER REFERENCES games(id),
-    game_set_index INTEGER NOT NULL,
-    throw_position INTEGER NOT NULL,
-    home_team BOOLEAN NOT NULL,
-    team_id INTEGER REFERENCES series_registrations(id),
-    throw_1 INTEGER REFERENCES single_throw(id),
-    throw_2 INTEGER REFERENCES single_throw(id),
-    throw_3 INTEGER REFERENCES single_throw(id),
-    throw_4 INTEGER REFERENCES single_throw(id),
-    CONSTRAINT valid_throw_position CHECK (throw_position BETWEEN 1 AND 5),
-    CONSTRAINT valid_game_set_index CHECK (game_set_index BETWEEN 1 AND 2),
-    UNIQUE (game_id, game_set_index, throw_position, home_team)
-);
-
 -- Yksinkertaiset tarkistukset tietokannassa
 CREATE OR REPLACE FUNCTION validate_team_player_count()
 RETURNS TRIGGER AS $$
