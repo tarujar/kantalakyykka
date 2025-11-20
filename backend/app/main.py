@@ -63,8 +63,6 @@ try:
     admin = Admin(
         app, 
         name=str(_('kyykka kanta hallinta')), 
-        template_mode='bootstrap4',
-        base_template='admin/base.html'
     )
     
     admin.add_view(UserAdmin(User, db.session, name=_('user'), category='yleinen'))
